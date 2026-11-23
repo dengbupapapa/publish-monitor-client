@@ -1,0 +1,399 @@
+/* 对照区：两栏逐行 + 中缝连线，配色统一走 styles/app.css 里的变量。 */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- 降级提示 ---------- */
+.degraded {
+  padding: 8px 14px;
+  background: rgba(216, 150, 20, 0.14);
+  border-bottom: 1px solid var(--pm-replaced);
+  color: #ffd9a8;
+}
+
+/* ---------- 表头：不参与对比行，不随正文滚动 ---------- */
+.compare {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.compare-head {
+  display: grid;
+  grid-template-columns: 1fr var(--pm-gutter) 1fr;
+  border-bottom: 1px solid var(--pm-line);
+  background: var(--pm-panel);
+}
+
+.head-cell {
+  min-width: 0;
+  padding: 10px 14px;
+}
+
+.head-side {
+  font-size: 11px;
+  color: var(--pm-muted);
+}
+
+.head-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.head-title.empty {
+  color: var(--pm-muted);
+  font-weight: 400;
+}
+
+.head-meta {
+  font-size: 11px;
+  color: var(--pm-muted);
+}
+
+.head-mid {
+  border-left: 1px solid var(--pm-line);
+  border-right: 1px solid var(--pm-line);
+}
+
+/* ---------- 行容器：整页只有这一个滚动容器 ---------- */
+.rows-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rows-body {
+  position: relative;
+}
+
+.rows-empty {
+  margin: 0;
+  padding: 24px 14px;
+  color: var(--pm-muted);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr var(--pm-gutter) 1fr;
+  /* 行高取较高一侧 */
+  align-items: stretch;
+  border-bottom: 1px solid var(--pm-line);
+}
+
+.row > .cell {
+  min-width: 0;
+  padding: 7px 14px;
+}
+
+.row > .mid {
+  padding: 0;
+  border-left: 1px solid var(--pm-line);
+  border-right: 1px solid var(--pm-line);
+}
+
+/* 单侧行：保留空格子并标注归属 */
+.row > .cell.empty-side {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(139, 149, 168, 0.07) 0 6px,
+    rgba(139, 149, 168, 0) 6px 12px
+  );
+}
+
+.row .only-note {
+  display: block;
+  font-size: 11px;
+  color: var(--pm-muted);
+}
+
+.row.selected {
+  background: rgba(76, 142, 247, 0.07);
+}
+
+.row.selected > .cell:first-child {
+  box-shadow: inset 3px 0 0 var(--pm-accent);
+}
+
+.row.selected > .cell:last-child {
+  box-shadow: inset -3px 0 0 var(--pm-accent);
+}
+
+/* ---------- 连线层：覆盖整个滚动内容，所以能跨行 ---------- */
+svg.wires {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+svg.wires path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+svg.wires path.is-active {
+  stroke-width: 3.5;
+}
+
+svg.wires .added {
+  color: var(--pm-added);
+}
+
+svg.wires .removed {
+  color: var(--pm-removed);
+}
+
+svg.wires .replaced {
+  color: var(--pm-replaced);
+}
+
+svg.wires circle {
+  pointer-events: none;
+}
+
+svg.wires circle.is-active {
+  stroke-width: 2.4;
+}
+
+/* ---------- 渲染内容 ---------- */
+.rendered {
+  color: var(--pm-text);
+}
+
+.rendered p {
+  margin: 0 0 8px;
+}
+
+.rendered img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rendered a {
+  color: #7fb0ff;
+}
+
+.rendered h1,
+.rendered h2,
+.rendered h3,
+.rendered h4 {
+  margin: 12px 0 8px;
+  font-size: 15px;
+}
+
+.rendered ul,
+.rendered ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.rendered blockquote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--pm-line);
+  color: var(--pm-muted);
+}
+
+.rendered table {
+  border-collapse: collapse;
+  margin: 0 0 8px;
+}
+
+.rendered th,
+.rendered td {
+  border: 1px solid var(--pm-line);
+  padding: 3px 6px;
+}
+
+.rendered code {
+  background: var(--pm-panel-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* 行内块的间距交给行 padding，避免 margin 折叠干扰行高 */
+.row > .cell > .rendered > * {
+  margin-bottom: 0;
+}
+
+.row > .cell > .rendered > :first-child {
+  margin-top: 0;
+}
+
+/* ---------- 高亮 ---------- */
+mark.hl {
+  background: rgba(73, 170, 25, 0.22);
+  color: inherit;
+  border-bottom: 2px solid var(--pm-added);
+  padding: 0 1px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+mark.hl[data-kinds*='removed'] {
+  background: rgba(220, 68, 70, 0.22);
+  border-bottom-color: var(--pm-removed);
+}
+
+mark.hl[data-kinds*='replaced'] {
+  background: rgba(216, 150, 20, 0.22);
+  border-bottom-color: var(--pm-replaced);
+}
+
+/* 图片高亮里唯一的子节点是 <img>，背景与下边框会被完全盖住，
+   选中只能走不参与布局的轮廓通道 */
+mark.hl.hl-image {
+  outline: 2px dashed var(--pm-added);
+  outline-offset: 2px;
+}
+
+mark.hl[data-kinds*='removed'].hl-image {
+  outline-color: var(--pm-removed);
+}
+
+mark.hl.is-active {
+  background: rgba(76, 142, 247, 0.32);
+  border-bottom-color: var(--pm-accent);
+}
+
+mark.hl.hl-image.is-active {
+  outline: 3px solid var(--pm-accent);
+}
+
+/* ---------- 记录侧栏 ---------- */
+.records {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--pm-line);
+  background: var(--pm-panel);
+}
+
+.records-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pm-line);
+  font-size: 12px;
+}
+
+.records-count {
+  color: var(--pm-muted);
+}
+
+.records-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.records-empty {
+  margin: 0;
+  padding: 12px 6px;
+  color: var(--pm-muted);
+}
+
+.record {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--pm-line);
+  border-radius: 6px;
+  background: var(--pm-panel-2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.record:hover {
+  border-color: var(--pm-accent);
+}
+
+.record.active {
+  border-color: var(--pm-accent);
+  box-shadow: 0 0 0 1px var(--pm-accent) inset;
+}
+
+.record .top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.record .sides {
+  font-size: 12px;
+  color: var(--pm-muted);
+}
+
+.record .sides div {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record .sides b {
+  color: var(--pm-text);
+  font-weight: 500;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--pm-line);
+  color: var(--pm-muted);
+}
+
+.badge.added {
+  color: #6fdc8c;
+  border-color: var(--pm-added);
+}
+
+.badge.removed {
+  color: #ff8b8b;
+  border-color: var(--pm-removed);
+}
+
+.badge.replaced {
+  color: #ffd28a;
+  border-color: var(--pm-replaced);
+}
+
+.badge.warn {
+  color: #ffd28a;
+  border-color: var(--pm-replaced);
+}
+
+.anchor {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--pm-muted);
+}

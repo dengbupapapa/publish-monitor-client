@@ -1,0 +1,38 @@
+/* 全局基座：只在对照区之外生效，对照区样式集中在 styles/diff.css。 */
+:root {
+  /* 与 antd 暗色 token 对齐的取值，供自绘部分复用 */
+  --pm-bg: #141414;
+  --pm-panel: #1f1f1f;
+  --pm-panel-2: #262626;
+  --pm-line: #303030;
+  --pm-text: rgba(255, 255, 255, 0.85);
+  --pm-muted: rgba(255, 255, 255, 0.45);
+  --pm-added: #49aa19;
+  --pm-removed: #dc4446;
+  --pm-replaced: #d89614;
+  --pm-accent: #4c8ef7;
+  /* 对照区中缝宽度，行与表头共用 */
+  --pm-gutter: 56px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--pm-bg);
+  color: var(--pm-text);
+  font: 13px/1.6 -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+code,
+pre {
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+}

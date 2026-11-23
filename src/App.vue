@@ -1,11 +1,20 @@
-<script setup></script>
+<script setup>
+import { theme } from 'ant-design-vue'
+
+// 暗色外壳：列表页与详情页共用一套配色，对照区的语义色也从这里取，
+// 避免出现「一半 antd、一半自绘」的两套暗色。
+const appTheme = {
+  algorithm: theme.darkAlgorithm,
+  token: {
+    colorPrimary: '#4c8ef7',
+    borderRadius: 6,
+    fontFamily: '-apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+  },
+}
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <a-config-provider :theme="appTheme">
+    <router-view />
+  </a-config-provider>
 </template>
-
-<style scoped></style>
