@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { DEFAULT_LIMIT, listMatchResults, pageToSkip } from '@/api/matchResults'
+import { DEFAULT_LIMIT, listMatchResults } from '@/api/matchResults'
 import { KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '@/diff/constants'
 import { changeSummary } from '@/diff/records'
 
@@ -34,7 +34,7 @@ const state = computed(() => {
 
 const loading = ref(false)
 const errorMessage = ref('')
-const pageData = ref({ total: 0, items: [], page: 1, size: DEFAULT_LIMIT })
+const pageData = ref({ total: 0, rows: [], page: 1, size: DEFAULT_LIMIT })
 
 let seq = 0
 let controller = null
@@ -48,15 +48,24 @@ async function load() {
 
   try {
     const payload = await listMatchResults({
-      skip: pageToSkip(state.value.page, state.value.size),
-      limit: state.value.size,
+      page: state.value.page,
+      size: state.value.size,
       matched: state.value.matched,
       signal: controller.signal,
     })
     if (token !== seq) return
+
+    const total = Number(payload?.total) || 0
+    const rows = Array.isArray(payload?.rows) ? payload.rows : []
+    // 页码越界：总数不为 0 却取不到条目，说明停在了超过总页数的位置，回第一页
+    if (total > 0 && rows.length === 0 && state.value.page > 1) {
+      router.replace({ query: toListQuery({ ...state.value, page: 1 }) })
+      return
+    }
+
     pageData.value = {
-      total: Number(payload?.total) || 0,
-      items: payload?.items || [],
+      total,
+      rows,
       page: state.value.page,
       size: state.value.size,
     }
@@ -64,7 +73,7 @@ async function load() {
     if (token !== seq || error.name === 'AbortError') return
     // 失败不能显示成「没有数据」，这里清空列表并交给错误提示
     errorMessage.value = error.message || '加载失败'
-    pageData.value = { total: 0, items: [], page: 1, size: state.value.size }
+    pageData.value = { total: 0, rows: [], page: 1, size: state.value.size }
   } finally {
     if (token === seq) loading.value = false
   }
@@ -73,14 +82,20 @@ async function load() {
 // 过滤条件或分页一变就重新取数；三件事放进一个 watch，不会取两次
 watch(() => [state.value.matched, state.value.page, state.value.size], load, { immediate: true })
 
+// 把过滤与分页折叠成地址 query：缺省值不写回，保持地址干净
+function toListQuery(next) {
+  const query = {}
+  if (next.matched) query.matched = String(next.matched)
+  if (Number(next.page) > 1) query.page = String(next.page)
+  if (Number(next.size) !== DEFAULT_LIMIT) query.size = String(next.size)
+  return query
+}
+
 // 把冗余或非法的地址参数改写成规范形态，保持可分享
 watch(
   () => route.query,
   (query) => {
-    const canonical = {}
-    if (state.value.matched) canonical.matched = state.value.matched
-    if (state.value.page > 1) canonical.page = String(state.value.page)
-    if (state.value.size !== DEFAULT_LIMIT) canonical.size = String(state.value.size)
+    const canonical = toListQuery(state.value)
 
     const same = ['matched', 'page', 'size'].every(
       (key) => String(query[key] ?? '') === String(canonical[key] ?? ''),
@@ -97,11 +112,7 @@ onBeforeUnmount(() => {
 
 function updateQuery(patch) {
   const next = { matched: state.value.matched, page: state.value.page, size: state.value.size, ...patch }
-  const query = {}
-  if (next.matched) query.matched = String(next.matched)
-  if (Number(next.page) > 1) query.page = String(next.page)
-  if (Number(next.size) !== DEFAULT_LIMIT) query.size = String(next.size)
-  router.push({ query })
+  router.push({ query: toListQuery(next) })
 }
 
 const matchedOption = computed(() => state.value.matched || 'all')
@@ -144,7 +155,7 @@ const RESULT_COLORS = {
 
 // 序号按页码与条数派生，与结论编号无关；行标识仍由 row-key 取 record.id
 const rows = computed(() =>
-  pageData.value.items.map((record, index) => ({
+  pageData.value.rows.map((record, index) => ({
     ...record,
     ordinal: (pageData.value.page - 1) * pageData.value.size + index + 1,
     result: changeSummary(record),
@@ -172,7 +183,12 @@ const emptyDescription = computed(() => {
 
 function openDetail(record) {
   if (!isEnterable(record)) return
-  router.push({ name: 'match-result-detail', params: { id: record.id } })
+  // 详情地址带上列表当前的过滤与分页，返回列表时才能原样恢复
+  router.push({
+    name: 'match-result-detail',
+    params: { id: record.id },
+    query: toListQuery(state.value),
+  })
 }
 </script>
 

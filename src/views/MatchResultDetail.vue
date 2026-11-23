@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getMatchResultPreview } from '@/api/matchResults'
 import DiffWorkspace from '@/components/diff/DiffWorkspace.vue'
@@ -13,6 +13,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(true)
 const notFound = ref(false)
@@ -81,7 +82,8 @@ const view = computed(() => {
 })
 
 function backToList() {
-  router.push({ name: 'match-results' })
+  // 详情地址带着列表的来源 query，回去时原样带回，否则会丢掉过滤与页码
+  router.push({ name: 'match-results', query: route.query })
 }
 </script>
 
