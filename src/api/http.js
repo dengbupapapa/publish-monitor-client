@@ -32,21 +32,29 @@ export class NotFoundError extends ApiError {
 }
 
 /**
- * 发起 GET 请求并剥掉信封。
+ * 发起请求并剥掉信封。
  *
  * @param {string} path 以 `/` 开头、不含 `/api` 前缀的路径
- * @param {{signal?: AbortSignal, fetchImpl?: Function, base?: string}} [options]
+ * @param {{method?: string, body?: object, notFoundMessage?: string,
+ *          signal?: AbortSignal, fetchImpl?: Function, base?: string}} [options]
+ *   - `method`：HTTP 方法，缺省 `GET`；`body` 传入时按 JSON 序列化并带上
+ *     `Content-Type: application/json`
+ *   - `notFoundMessage`：覆盖 404 的默认文案
  * @returns {Promise<any>} 信封里的 `data`
  */
 export async function request(path, options = {}) {
   const fetchImpl = options.fetchImpl || globalThis.fetch
   const base = options.base ?? apiBase()
+  const hasBody = options.body !== undefined && options.body !== null
+  const headers = { Accept: 'application/json' }
+  if (hasBody) headers['Content-Type'] = 'application/json'
 
   let response
   try {
     response = await fetchImpl(base + path, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+      method: options.method || 'GET',
+      headers,
+      body: hasBody ? JSON.stringify(options.body) : undefined,
       signal: options.signal,
     })
   } catch (error) {
@@ -63,7 +71,7 @@ export async function request(path, options = {}) {
   }
 
   if (response.status === 404) {
-    throw new NotFoundError(payload?.msg || '未找到这条结论')
+    throw new NotFoundError(payload?.msg || options.notFoundMessage || '请求的资源不存在')
   }
   if (!response.ok) {
     throw new ApiError(payload?.msg || `请求失败（HTTP ${response.status}）`, {

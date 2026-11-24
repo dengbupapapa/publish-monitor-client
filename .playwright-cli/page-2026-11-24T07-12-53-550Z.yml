@@ -1,0 +1,213 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "页面导航" [ref=e3]:
+      - link "结论列表" [ref=e4] [cursor=pointer]:
+        - /url: /match-results
+      - link "定时任务" [ref=e5] [cursor=pointer]:
+        - /url: /scheduled-tasks
+    - generic [ref=e18]:
+      - banner [ref=e19]:
+        - button "← 返回列表" [ref=e20] [cursor=pointer]
+        - generic [ref=e22]: 坐标版本 v2
+      - generic [ref=e25]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - generic [ref=e30]: 内部稿件
+              - generic [ref=e31]: 2.43GB的“惊喜”又来了！Windows十几年的推广执念太让人无奈
+              - generic [ref=e32]: 3543 字符 · 0 处差异
+            - generic [ref=e34]:
+              - generic [ref=e35]: 发布稿件
+              - generic [ref=e36]: 硬盘平白少2.43GB，Windows又偷偷往系统里塞应用了
+              - generic [ref=e37]: 3955 字符 · 11 处差异
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: 内部稿件无对应内容
+              - generic [ref=e43]:
+                - generic: 新增
+                - paragraph [ref=e45]:
+                  - mark [ref=e46] [cursor=pointer]: 硬盘平白少2.43GB，Windows又偷偷往系统里塞应用了
+            - generic [ref=e47]:
+              - generic [ref=e48]: 内部稿件无对应内容
+              - paragraph [ref=e53]: "img{ display:block; margin:0 auto !important; width:100%; } body{ width:75%; margin:0 auto !important; }"
+            - generic [ref=e54]:
+              - paragraph [ref=e57]: 最近，有 Windows 用户发帖称，在检查电脑的“应用和功能”列表时，发现电脑里多出了一款名为《Disney Magic Kingdoms》（迪士尼梦幻王国）的游戏，占用硬盘空间高达 2.43GB，安装日期显示为 2026 年 10 月 8 日。
+              - paragraph [ref=e61]: 最近，有 Windows 用户发帖称，在检查电脑的“应用和功能”列表时，发现电脑里多出了一款名为《Disney Magic Kingdoms》（迪士尼梦幻王国）的游戏，占用硬盘空间高达 2.43GB，安装日期显示为 2026 年 10 月 8 日。
+            - generic [ref=e62]:
+              - paragraph [ref=e65]:
+                - img "IMG_256" [ref=e66]
+              - paragraph [ref=e70]
+            - generic [ref=e71]:
+              - paragraph [ref=e74]: 这位用户表示自己既没有主动下载，也没有明确同意安装，并且自己下班后才使用电脑，不存在家里其他人用了电脑的情况。
+              - paragraph [ref=e78]: 这位用户表示自己既没有主动下载，也没有明确同意安装，并且自己下班后才使用电脑，不存在家里其他人用了电脑的情况。
+            - generic [ref=e79]:
+              - paragraph [ref=e82]: 这件事迅速引发了大量 Windows 用户的共鸣，因为类似的遭遇并不是第一次发生，微软操作系统长期存在的“推广应用”机制又一次被推到用户面前。
+              - paragraph [ref=e86]: 这件事迅速引发了大量 Windows 用户的共鸣，因为类似的遭遇并不是第一次发生，微软操作系统长期存在的“推广应用”机制又一次被推到用户面前。
+            - generic [ref=e87]:
+              - paragraph [ref=e90]: 其实，Windows 系统里“凭空多出应用”的问题由来已久。早在 Windows 10 刚推出时，微软就与游戏开发商 King 合作，将《Candy Crush Saga》（糖果传奇）纳入了系统推广范围。当时官方承认，用户升级或安装 Windows 10 后，这款游戏会在一段时间内被自动安装到系统中，地位类似经典的《扫雷》和《纸牌》。
+              - paragraph [ref=e94]: 其实，Windows 系统里“凭空多出应用”的问题由来已久。早在 Windows 10 刚推出时，微软就与游戏开发商 King 合作，将《Candy Crush Saga》（糖果传奇）纳入了系统推广范围。当时官方承认，用户升级或安装 Windows 10 后，这款游戏会在一段时间内被自动安装到系统中，地位类似经典的《扫雷》和《纸牌》。
+            - generic [ref=e95]:
+              - paragraph [ref=e98]:
+                - img "IMG_257" [ref=e99]
+              - paragraph [ref=e103]
+            - generic [ref=e104]:
+              - paragraph [ref=e107]: 由于用户抱怨声不断，微软在 2019 年的 Windows 10 May 2019 更新中宣布，不再将《Candy Crush Saga》直接放进开始菜单，也不会在系统升级后重新出现。但这并不意味着 Windows 放弃了推广应用机制，只是让整个分发流程变得更加隐蔽。
+              - paragraph [ref=e111]: 由于用户抱怨声不断，微软在 2019 年的 Windows 10 May 2019 更新中宣布，不再将《Candy Crush Saga》直接放进开始菜单，也不会在系统升级后重新出现。但这并不意味着 Windows 放弃了推广应用机制，只是让整个分发流程变得更加隐蔽。
+            - generic [ref=e112]:
+              - paragraph [ref=e115]: 这次事件中被提及的《Disney Magic Kingdoms》，同样不是第一次出现在用户的电脑上。有不少用户反映，曾经在升级系统后也发现过这款游戏，并且卸载之后过一段时间又会自动安装回来。
+              - paragraph [ref=e119]: 这次事件中被提及的《Disney Magic Kingdoms》，同样不是第一次出现在用户的电脑上。有不少用户反映，曾经在升级系统后也发现过这款游戏，并且卸载之后过一段时间又会自动安装回来。
+            - generic [ref=e120]:
+              - paragraph [ref=e123]: 据悉，这和 Windows 的 Content Delivery Manager（简称 CDM，内容交付管理器）机制关系很大。
+              - paragraph [ref=e127]: 据悉，这和 Windows 的 Content Delivery Manager（简称 CDM，内容交付管理器）机制关系很大。
+            - generic [ref=e128]:
+              - paragraph [ref=e131]: “内容交付管理器”可以理解为系统层面的推荐内容分发机制，它负责把“订阅内容”（比如锁屏技巧、应用推广、桌面图标提示、开始菜单推荐等）推送到用户本地。它完全在系统后台运行，没有普通软件常见的下载弹窗、安装确认界面，过去很多用户遇到的“莫名其妙多出一个应用”，背后几乎都有这个机制的参与。
+              - paragraph [ref=e135]: “内容交付管理器”可以理解为系统层面的推荐内容分发机制，它负责把“订阅内容”（比如锁屏技巧、应用推广、桌面图标提示、开始菜单推荐等）推送到用户本地。它完全在系统后台运行，没有普通软件常见的下载弹窗、安装确认界面，过去很多用户遇到的“莫名其妙多出一个应用”，背后几乎都有这个机制的参与。
+            - generic [ref=e136]:
+              - paragraph [ref=e139]: 而之所以这些推广应用能够“卸载后又回来”，主要有几类原因。首先是系统推荐策略层面，某些应用被标记为高优先级推荐内容后，会在系统更新、账户同步或云端策略刷新时，自动重新下发到本地设备；其次是开始菜单的推荐入口存在误触发可能，部分应用最初只会以推荐图标的形式出现在开始菜单中，用户误点后就会在后台静默完成安装；第三是 Microsoft Store 的后台行为，如果开启了自动安装推荐应用或自动更新，也可能增加推广应用自动落地的概率。此外，系统升级、设备重置、登录微软账户等操作，都可能成为推荐应用重新出现的触发条件。
+              - paragraph [ref=e143]: 而之所以这些推广应用能够“卸载后又回来”，主要有几类原因。首先是系统推荐策略层面，某些应用被标记为高优先级推荐内容后，会在系统更新、账户同步或云端策略刷新时，自动重新下发到本地设备；其次是开始菜单的推荐入口存在误触发可能，部分应用最初只会以推荐图标的形式出现在开始菜单中，用户误点后就会在后台静默完成安装；第三是 Microsoft Store 的后台行为，如果开启了自动安装推荐应用或自动更新，也可能增加推广应用自动落地的概率。此外，系统升级、设备重置、登录微软账户等操作，都可能成为推荐应用重新出现的触发条件。
+            - generic [ref=e144]:
+              - paragraph [ref=e147]: 从性质上看，这类推广应用与恶意软件有明显区别。它们通常是正规应用，不会窃取数据或破坏系统，但确实带来了一些问题，如占用硬盘空间、在没有用户明确授权的情况下进入设备、卸载后还可能反复出现等。
+              - paragraph [ref=e151]: 从性质上看，这类推广应用与恶意软件有明显区别。它们通常是正规应用，不会窃取数据或破坏系统，但确实带来了一些问题，如占用硬盘空间、在没有用户明确授权的情况下进入设备、卸载后还可能反复出现等。
+            - generic [ref=e152]:
+              - paragraph [ref=e155]: 还有一类处于正规应用程序和恶意软件之间的“灰色区域”，微软称之为“可能不需要的应用”，也就是 PUA，它们可能弹广告、拖慢系统，甚至诱导安装其他软件。
+              - paragraph [ref=e159]: 还有一类处于正规应用程序和恶意软件之间的“灰色区域”，微软称之为“可能不需要的应用”，也就是 PUA，它们可能弹广告、拖慢系统，甚至诱导安装其他软件。
+            - generic [ref=e160]:
+              - paragraph [ref=e163]:
+                - img "IMG_258" [ref=e164]
+              - paragraph [ref=e168]
+            - generic [ref=e169]:
+              - paragraph [ref=e172]: 从左到右分别为：干净的应用程序、潜在不需要的应用程序、恶意软件
+              - paragraph [ref=e176]: 从左到右分别为：干净的应用程序、潜在不需要的应用程序、恶意软件
+            - generic [ref=e177]:
+              - paragraph [ref=e180]:
+                - img "IMG_259" [ref=e181]
+              - paragraph [ref=e185]
+            - generic [ref=e186]:
+              - paragraph [ref=e189]: 而这次事件更接近系统层面的推广应用，虽然危害性较低，但对用户体验的冒犯感并不小。
+              - paragraph [ref=e193]: 而这次事件更接近系统层面的推广应用，虽然危害性较低，但对用户体验的冒犯感并不小。
+            - generic [ref=e194]:
+              - paragraph [ref=e197]: 这件事也反映出 Windows 长期以来在系统定位上的矛盾。一方面，Windows 是用户用来工作和娱乐的生产力工具；另一方面，微软又希望把它打造成一个高黏性的应用分发和内容推广的渠道。
+              - paragraph [ref=e201]: 这件事也反映出 Windows 长期以来在系统定位上的矛盾。一方面，Windows 是用户用来工作和娱乐的生产力工具；另一方面，微软又希望把它打造成一个高黏性的应用分发和内容推广的渠道。
+            - generic [ref=e202]:
+              - paragraph [ref=e205]:
+                - text: 从 Windows 8 的开始屏幕磁贴推广，到 Windows 10 的 《Candy Crush Saga》预装，再到 Windows 11 中无处不在的 Copilot 入口和各种云端内容推荐，十几年里推广的形式换了一轮又一轮，但套路始终没有变过：**操作系统本身早就成了微软最重要的自有推广渠道。**与苹果相比，macOS 虽然也有预装应用，但不会在用户卸载后自动装回；与安卓厂商相比，手机预装虽然更普遍，但用户至少知道那是厂商行为。而 Windows 最令人无奈的地方在于，
+                - strong [ref=e206]: 一个本该完全属于用户自己的生产力系统，却总想同时扮演应用商店和广告平台的角色。
+              - paragraph [ref=e210]: 从 Windows 8 的开始屏幕磁贴推广，到 Windows 10 的 《Candy Crush Saga》预装，再到 Windows 11 中无处不在的 Copilot 入口和各种云端内容推荐，十几年里推广的形式换了一轮又一轮，但套路始终没有变过：操作系统本身早就成了微软最重要的自有推广渠道。与苹果相比，macOS 虽然也有预装应用，但不会在用户卸载后自动装回；与安卓厂商相比，手机预装虽然更普遍，但用户至少知道那是厂商行为。而 Windows 最令人无奈的地方在于，一个本该完全属于用户自己的生产力系统，却总想同时扮演应用商店和广告平台的角色。
+            - generic [ref=e211]:
+              - paragraph [ref=e214]: 对用户而言，面对这类推广应用，最实际的做法仍然是及时检查已安装应用列表，发现陌生应用直接卸载，同时在系统设置中关闭各类推荐内容、提示建议和自动安装选项，收紧 Microsoft Store 的后台权限。不过，由于微软的推广策略可能随系统更新调整，用户每隔一段时间，依然需要重新核对一遍这些设置。
+              - paragraph [ref=e218]: 对用户而言，面对这类推广应用，最实际的做法仍然是及时检查已安装应用列表，发现陌生应用直接卸载，同时在系统设置中关闭各类推荐内容、提示建议和自动安装选项，收紧 Microsoft Store 的后台权限。不过，由于微软的推广策略可能随系统更新调整，用户每隔一段时间，依然需要重新核对一遍这些设置。
+            - generic [ref=e219]:
+              - paragraph [ref=e222]: 说到底，大多数用户并不排斥系统提供合理的应用推荐，大家在意的是自己能否拥有最基本的选择权——装不装、什么时候装、能不能彻底关掉，这些本该由用户自己说了算。硬盘空间可以清理，但被系统擅自冒犯的使用体验，才是这次事件真正引发共鸣的原因。
+              - paragraph [ref=e226]: 说到底，大多数用户并不排斥系统提供合理的应用推荐，大家在意的是自己能否拥有最基本的选择权——装不装、什么时候装、能不能彻底关掉，这些本该由用户自己说了算。硬盘空间可以清理，但被系统擅自冒犯的使用体验，才是这次事件真正引发共鸣的原因。
+            - generic [ref=e227]:
+              - paragraph [ref=e230]: 用了这么多年Windows，你遇到过自动装软件的情况吗？
+              - paragraph [ref=e234]: 用了这么多年Windows，你遇到过自动装软件的情况吗？
+            - generic [ref=e235]:
+              - generic [ref=e236]: 内部稿件无对应内容
+              - generic [ref=e239]:
+                - generic: 新增
+                - paragraph [ref=e241]:
+                  - mark [ref=e242] [cursor=pointer]: 编辑：cc
+            - generic [ref=e243]:
+              - generic [ref=e244]: 内部稿件无对应内容
+              - generic [ref=e247]:
+                - generic: 新增
+                - paragraph [ref=e249]:
+                  - mark [ref=e250] [cursor=pointer]: 欢迎加入电脑报粉丝大家庭！进群领取《电脑报粉丝专属知识库》——装机、选购、避坑、技巧，享不定期干货福利。
+            - generic [ref=e251]:
+              - generic [ref=e252]: 内部稿件无对应内容
+              - generic [ref=e255]:
+                - generic: 新增
+                - paragraph [ref=e257]:
+                  - mark [ref=e258] [cursor=pointer]: 扫码添加电小豹，享电脑报电商优惠福利，淘二手数码好物。
+            - generic [ref=e259]:
+              - generic [ref=e260]: 内部稿件无对应内容
+              - generic [ref=e263]:
+                - generic: 新增
+                - paragraph [ref=e265]:
+                  - mark [ref=e266] [cursor=pointer]:
+                    - img "图片" [ref=e267]
+            - generic [ref=e268]:
+              - generic [ref=e269]: 内部稿件无对应内容
+              - generic [ref=e272]:
+                - generic: 新增
+                - paragraph [ref=e274]:
+                  - mark [ref=e275] [cursor=pointer]: 《电脑报》34年坚守初心，致力于普及计算机知识，陪伴无数科技爱好者成长。电脑报官方微信小店可以购买纸质版啦！定期发货，安全靠谱！
+            - generic [ref=e276]:
+              - generic [ref=e277]: 内部稿件无对应内容
+              - generic [ref=e280]:
+                - generic: 新增
+                - paragraph [ref=e282]:
+                  - mark [ref=e283] [cursor=pointer]:
+                    - img "图片" [ref=e284]
+            - generic [ref=e285]:
+              - generic [ref=e286]: 内部稿件无对应内容
+              - generic [ref=e289]:
+                - generic: 新增
+                - paragraph [ref=e291]:
+                  - strong [ref=e292]:
+                    - mark [ref=e293] [cursor=pointer]: 往期内容推荐
+            - generic [ref=e294]:
+              - generic [ref=e295]: 内部稿件无对应内容
+              - generic [ref=e298]:
+                - generic: 新增
+                - paragraph [ref=e300]:
+                  - link [ref=e301] [cursor=pointer]:
+                    - /url: https://mp.weixin.qq.com/s?__biz=MzYzMTM3Njg0Mw==&mid=2247658608&idx=1&sn=664e4ef65e885d4d94a1775b4ef4fe59&scene=21#wechat_redirect
+                    - mark [ref=e302]: 官宣！手机进入“一机四号”时代
+            - generic [ref=e303]:
+              - generic [ref=e304]: 内部稿件无对应内容
+              - generic [ref=e307]:
+                - generic: 新增
+                - paragraph [ref=e309]:
+                  - link [ref=e310] [cursor=pointer]:
+                    - /url: https://mp.weixin.qq.com/s?__biz=MzYzMTM3Njg0Mw==&mid=2247658941&idx=1&sn=755196166b7877eca7035c2b76c10dd4&scene=21#wechat_redirect
+                    - mark [ref=e311]: 国行iPhone专属功能，背后是国家花4年补上的漏洞
+            - generic [ref=e312]:
+              - generic [ref=e313]: 内部稿件无对应内容
+              - generic [ref=e316]:
+                - generic: 新增
+                - heading [level=1] [ref=e318]:
+                  - link [ref=e319] [cursor=pointer]:
+                    - /url: https://mp.weixin.qq.com/s?__biz=MzYzMTM3Njg0Mw==&mid=2247659257&idx=1&sn=5370eb38f627797c218b8d9342c1f8fa&scene=21#wechat_redirect
+                    - mark [ref=e320]: “公摊网盘”引争议，老用户直接蒙了
+        - complementary [ref=e321]:
+          - generic [ref=e322]:
+            - generic [ref=e323]: 差异记录
+            - generic [ref=e324]: 共 4 条
+          - generic [ref=e325]:
+            - button "新增 文本 第 1/1 行 内部稿件 空侧 发布稿件 1 处 · 硬盘平白少2.43GB，Windows又偷偷往系统里塞应用了" [ref=e326] [cursor=pointer]:
+              - generic [ref=e327]:
+                - generic [ref=e328]: 新增
+                - generic [ref=e329]: 文本
+                - generic [ref=e330]: 第 1/1 行
+              - generic [ref=e331]:
+                - generic [ref=e332]: 内部稿件 空侧
+                - generic [ref=e333]: 发布稿件 1 处 · 硬盘平白少2.43GB，Windows又偷偷往系统里塞应用了
+            - button "新增 文本 第 1/8 行 内部稿件 空侧 发布稿件 8 处 · 编辑：cc 欢迎加入电脑报粉丝大家庭！进群领取《电脑报粉丝专属知识库》——装机、选购、避坑、技巧，享不定期干货福利。 扫码添加电小豹，享电脑报电商优惠福利，淘二手数码好物。 《电脑报》34年坚守初心，致力于普及计算机知识，陪伴无数科技爱好者…" [ref=e334] [cursor=pointer]:
+              - generic [ref=e335]:
+                - generic [ref=e336]: 新增
+                - generic [ref=e337]: 文本
+                - generic [ref=e338]: 第 1/8 行
+              - generic [ref=e339]:
+                - generic [ref=e340]: 内部稿件 空侧
+                - generic [ref=e341]: 发布稿件 8 处 · 编辑：cc 欢迎加入电脑报粉丝大家庭！进群领取《电脑报粉丝专属知识库》——装机、选购、避坑、技巧，享不定期干货福利。 扫码添加电小豹，享电脑报电商优惠福利，淘二手数码好物。 《电脑报》34年坚守初心，致力于普及计算机知识，陪伴无数科技爱好者…
+            - button "新增 图片 第 1/1 行 内部稿件 空侧 发布稿件 1 张 · ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/bPETrS3Kld0Ty4toCVDcWIicmK04Exv7P0PdTvdpv8dgxibatH2pCLW9O7XcU3SgmwLicjpl4Aamtic…" [ref=e342] [cursor=pointer]:
+              - generic [ref=e343]:
+                - generic [ref=e344]: 新增
+                - generic [ref=e345]: 图片
+                - generic [ref=e346]: 第 1/1 行
+              - generic [ref=e347]:
+                - generic [ref=e348]: 内部稿件 空侧
+                - generic [ref=e349]: 发布稿件 1 张 · ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/bPETrS3Kld0Ty4toCVDcWIicmK04Exv7P0PdTvdpv8dgxibatH2pCLW9O7XcU3SgmwLicjpl4Aamtic…
+            - button "新增 图片 第 1/1 行 内部稿件 空侧 发布稿件 1 张 · ![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/TGj3ELfmEqibVh3nCaq0vqWGFRIOSX4Z9jZZjBN2MMYZRwnotQm5x8sC2yOGrAYFa1KicMcicK8l1dz…" [ref=e350] [cursor=pointer]:
+              - generic [ref=e351]:
+                - generic [ref=e352]: 新增
+                - generic [ref=e353]: 图片
+                - generic [ref=e354]: 第 1/1 行
+              - generic [ref=e355]:
+                - generic [ref=e356]: 内部稿件 空侧
+                - generic [ref=e357]: 发布稿件 1 张 · ![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/TGj3ELfmEqibVh3nCaq0vqWGFRIOSX4Z9jZZjBN2MMYZRwnotQm5x8sC2yOGrAYFa1KicMcicK8l1dz…
+  - generic [ref=e6]:
+    - generic "Toggle devtools panel" [ref=e7] [cursor=pointer]
+    - generic "Toggle Component Inspector" [ref=e13] [cursor=pointer]

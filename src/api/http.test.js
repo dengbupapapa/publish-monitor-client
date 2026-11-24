@@ -29,6 +29,53 @@ test('request 剥掉信封返回 data', async () => {
   assert.equal(fetchImpl.calls[0].options.method, 'GET')
 })
 
+test('request 支持自定义 method 与 JSON body', async () => {
+  const fetchImpl = fakeFetch({ code: 200, msg: 'success', data: { id: 7 } })
+  const data = await request('/diff-schedules', {
+    fetchImpl,
+    base: '/api',
+    method: 'POST',
+    body: { name: '每日比对', cron: '0 8 * * *' },
+  })
+  assert.deepEqual(data, { id: 7 })
+
+  const sent = fetchImpl.calls[0].options
+  assert.equal(sent.method, 'POST')
+  assert.equal(sent.headers['Content-Type'], 'application/json')
+  assert.equal(sent.body, JSON.stringify({ name: '每日比对', cron: '0 8 * * *' }))
+})
+
+test('request 不带 body 时不发 Content-Type 且 method 缺省 GET', async () => {
+  const fetchImpl = fakeFetch({ code: 200, msg: 'success', data: null })
+  await request('/diff-schedules', { fetchImpl, base: '/api' })
+
+  const sent = fetchImpl.calls[0].options
+  assert.equal(sent.method, 'GET')
+  assert.equal(sent.headers['Content-Type'], undefined)
+  assert.equal(sent.body, undefined)
+})
+
+test('request 404 使用中性默认文案且可被调用方覆盖', async () => {
+  const fetchImpl = fakeFetch({ code: 404, msg: '', data: null }, { status: 404 })
+
+  await assert.rejects(
+    () => request('/diff-schedules/9', { fetchImpl, base: '/api' }),
+    (error) => {
+      assert.ok(error instanceof NotFoundError)
+      assert.equal(error.message, '请求的资源不存在')
+      return true
+    },
+  )
+
+  await assert.rejects(
+    () => request('/diff-schedules/9', { fetchImpl, base: '/api', notFoundMessage: '这个任务不存在' }),
+    (error) => {
+      assert.equal(error.message, '这个任务不存在')
+      return true
+    },
+  )
+})
+
 test('request 把 404 归一为未找到', async () => {
   const fetchImpl = fakeFetch({ code: 404, msg: '匹配结论不存在', data: null }, { status: 404 })
   await assert.rejects(

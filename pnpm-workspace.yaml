@@ -1,2 +1,6 @@
 allowBuilds:
-  core-js: set this to true or false
+  core-js: false
+  vue-demi: true
+minimumReleaseAgeExclude:
+  - '@vue-js-cron/core@6.6.1'
+  - '@vue-js-cron/light@5.2.4'

@@ -22,7 +22,9 @@
   color: #ffd9a8;
 }
 
-/* ---------- 表头：不参与对比行，不随正文滚动 ---------- */
+/* ---------- 表头：与正文行同处一个滚动容器，sticky 固定在列上方 ----------
+   和行共用同一宽度上下文（含滚动条占位），列宽天然一致；
+   z-index 高于 svg.wires(2)，正文滚到表头下方时连线不会盖住表头。 */
 .compare {
   display: flex;
   flex-direction: column;
@@ -31,6 +33,9 @@
 }
 
 .compare-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: grid;
   grid-template-columns: 1fr var(--pm-gutter) 1fr;
   border-bottom: 1px solid var(--pm-line);
@@ -96,8 +101,55 @@
 }
 
 .row > .cell {
+  position: relative;
   min-width: 0;
   padding: 7px 14px;
+}
+
+/* ---------- 行方向标签：悬停显示，绝对定位不参与布局 ----------
+   挂在发布稿单元格左上角，横向排列，压在正文上但不动行高与间距。 */
+.row .row-tags {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: calc(100% - 6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.row:hover .row-tags {
+  opacity: 1;
+}
+
+.row-tag {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border: 1px solid var(--pm-line);
+  border-radius: 8px;
+  background: var(--pm-panel);
+  color: var(--pm-muted);
+  white-space: nowrap;
+}
+
+.row-tag.added {
+  color: var(--pm-added);
+  border-color: var(--pm-added);
+}
+
+.row-tag.removed {
+  color: var(--pm-removed);
+  border-color: var(--pm-removed);
+}
+
+.row-tag.replaced {
+  color: var(--pm-replaced);
+  border-color: var(--pm-replaced);
 }
 
 .row > .mid {

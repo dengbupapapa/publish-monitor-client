@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import DiffRow from './DiffRow.vue'
 import RecordCard from './RecordCard.vue'
+import { buildRowTags } from '@/diff/rowTags'
 import { drawWires } from '@/diff/wires'
 
 import '@/styles/diff.css'
@@ -33,6 +34,8 @@ const nextIndex = ref(0)
 const shownIndex = ref(0)
 /** rid → 命中行号数组 */
 const anchorRows = ref({})
+/** 行号 → [{ rid, kind }]；发布稿行左上角的悬停方向标签 */
+const rowTags = ref([])
 
 const emphasisRid = computed(() => hoverRid.value ?? activeRid.value)
 
@@ -64,25 +67,38 @@ function markRids(mark) {
   return (mark.getAttribute('data-rids') || '').split(' ').filter(Boolean)
 }
 
-/** 重新统计每条记录落在哪些行上；「无可定位」与游标都依赖它 */
+/**
+ * 重新统计每条记录落在哪些行上；「无可定位」与游标都依赖它。
+ * 行标签的归组与锚点同源同频，布局变化时一起刷新。
+ */
 function measureAnchors() {
   const body = rowsBody.value
-  const map = {}
   if (!body) {
-    anchorRows.value = map
+    anchorRows.value = {}
+    rowTags.value = []
     return
   }
 
+  const map = {}
+  const rowMarks = []
   Array.from(body.querySelectorAll('.row')).forEach((rowEl, index) => {
+    const marks = { reference: [], input: [] }
     for (const mark of rowEl.querySelectorAll('mark.hl')) {
-      for (const rid of markRids(mark)) {
+      const side = mark.closest('[data-side]')?.getAttribute('data-side')
+      if (side !== 'reference' && side !== 'input') continue
+      const rids = markRids(mark)
+      for (const rid of rids) {
         if (!map[rid]) map[rid] = []
         if (map[rid][map[rid].length - 1] !== index) map[rid].push(index)
       }
+      for (const rid of rids) if (!marks[side].includes(rid)) marks[side].push(rid)
     }
+    rowMarks.push(marks)
   })
 
   anchorRows.value = map
+  // 归组规则与连线 wires.js 的发布稿端点（y2）取值一致，见 rowTags.js
+  rowTags.value = buildRowTags(rowMarks, (rid) => kindByRid.value.get(rid) || '', props.records)
 }
 
 /** 强调态：高亮、行、连线三处同时生效 */
@@ -253,25 +269,25 @@ watch(
 
     <div class="workspace-body">
       <section class="compare">
-        <div class="compare-head">
-          <div class="head-cell">
-            <div class="head-side">内部稿件</div>
-            <div class="head-title" :class="{ empty: !article.reference_title }">
-              {{ article.reference_title || '（无标题）' }}
-            </div>
-            <div class="head-meta">{{ refMeta }}</div>
-          </div>
-          <div class="head-mid"></div>
-          <div class="head-cell">
-            <div class="head-side">发布稿件</div>
-            <div class="head-title" :class="{ empty: !article.input_title }">
-              {{ article.input_title || '（无标题）' }}
-            </div>
-            <div class="head-meta">{{ inpMeta }}</div>
-          </div>
-        </div>
-
         <div ref="rowsScroll" class="rows-scroll">
+          <div class="compare-head">
+            <div class="head-cell">
+              <div class="head-side">内部稿件</div>
+              <div class="head-title" :class="{ empty: !article.reference_title }">
+                {{ article.reference_title || '（无标题）' }}
+              </div>
+              <div class="head-meta">{{ refMeta }}</div>
+            </div>
+            <div class="head-mid"></div>
+            <div class="head-cell">
+              <div class="head-side">发布稿件</div>
+              <div class="head-title" :class="{ empty: !article.input_title }">
+                {{ article.input_title || '（无标题）' }}
+              </div>
+              <div class="head-meta">{{ inpMeta }}</div>
+            </div>
+          </div>
+
           <div
             ref="rowsBody"
             class="rows-body"
@@ -285,6 +301,7 @@ watch(
               :row="row"
               :ref-atoms="sides.reference.atoms"
               :inp-atoms="sides.input.atoms"
+              :tags="rowTags[index] || []"
             />
             <p v-if="!rows.length" class="rows-empty">两侧都没有可显示的内容。</p>
             <svg ref="wiresSvg" class="wires" aria-hidden="true"></svg>

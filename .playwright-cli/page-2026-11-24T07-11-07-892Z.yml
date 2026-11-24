@@ -1,0 +1,9 @@
+- generic [active] [ref=e1]:
+  - navigation "页面导航" [ref=e3]:
+    - link "结论列表" [ref=e4] [cursor=pointer]:
+      - /url: /match-results
+    - link "定时任务" [ref=e5] [cursor=pointer]:
+      - /url: /scheduled-tasks
+  - generic [ref=e6]:
+    - generic "Toggle devtools panel" [ref=e7] [cursor=pointer]
+    - generic "Toggle Component Inspector" [ref=e13] [cursor=pointer]

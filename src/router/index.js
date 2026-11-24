@@ -13,6 +13,11 @@ const routes = [
     component: () => import('@/views/MatchResultDetail.vue'),
     props: true,
   },
+  {
+    path: '/scheduled-tasks',
+    name: 'scheduled-tasks',
+    component: () => import('@/views/ScheduledTaskList.vue'),
+  },
   // 只读页面没有更好的落点，未知地址一律回列表
   { path: '/:pathMatch(.*)*', redirect: '/match-results' },
 ]
