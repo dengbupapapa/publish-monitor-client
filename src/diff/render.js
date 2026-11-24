@@ -86,6 +86,14 @@ export function renderSide(body, spans) {
     anchor.setAttribute('rel', 'noopener noreferrer')
   }
 
+  // 图片一律不带 Referer：跨站图床（如微信 mmbiz）按 Referer 白名单防盗链，
+  // 应用域名不在白名单里时返回「未经允许不可引用」占位图。属性只能在这里补，
+  // DOMPurify 的默认属性白名单不含 referrerpolicy，写在原文里会被消毒剥掉。
+  // 逐块 outerHTML 与降级时的整篇 innerHTML 都从这份 holder 取，两条路径都带上。
+  for (const image of holder.querySelectorAll('img')) {
+    image.setAttribute('referrerpolicy', 'no-referrer')
+  }
+
   const lexSpans = lexBlocks(source)
   const atomPlan = planAtomEntries(describeChildren(holder))
   const fallback = [{ start: 0, end: source.length, html: holder.innerHTML }]
