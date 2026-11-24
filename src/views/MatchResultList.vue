@@ -2,21 +2,17 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { DEFAULT_LIMIT, listMatchResults, WARN_SCOPE } from '@/api/matchResults'
+import { DEFAULT_LIMIT, KEYWORD_MAX_LENGTH, listMatchResults, normalizeKeyword, WARN_SCOPE } from '@/api/matchResults'
 import { KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '@/diff/constants'
 import { changeSummary } from '@/diff/records'
+import { readAttentionOnly, writeAttentionOnly } from '@/stores/listPrefs'
 
 const route = useRoute()
 const router = useRouter()
 
 const SIZE_OPTIONS = [10, 20, 50, 100]
 const MATCHED_VALUES = ['0', '1', '2']
-const MATCHED_OPTIONS = [
-  { value: 'all', label: '全部匹配态' },
-  { value: '1', label: '匹配' },
-  { value: '0', label: '不匹配' },
-  { value: '2', label: '未知' },
-]
+const KEYWORD_DEBOUNCE_MS = 300
 
 // 地址即状态：非法值一律回落缺省，手改地址不会把页面弄坏
 const state = computed(() => {
@@ -29,11 +25,32 @@ const state = computed(() => {
   const rawSize = Math.floor(Number(route.query.size))
   const size = SIZE_OPTIONS.includes(rawSize) ? rawSize : DEFAULT_LIMIT
 
-  // 集合只有「不传」与「关注集」两种形态，其它取值一律当成未勾选
-  const scope = String(route.query.scope ?? '') === WARN_SCOPE ? WARN_SCOPE : ''
+  const keyword = normalizeKeyword(route.query.keyword)
 
-  return { matched, page, size, scope }
+  // 关注集三态：null 表示地址没表态（交给缓存兜底），'' 表示地址显式否定，warn 表示勾选
+  const rawScope = String(route.query.scope ?? '').trim()
+  const explicitScope = rawScope === '' ? null : rawScope === WARN_SCOPE ? WARN_SCOPE : ''
+
+  return { matched, page, size, keyword, explicitScope }
 })
+
+// 地址没表态时才用本地缓存；缓存只在使用者显式勾选/取消时写入
+const cachedAttention = ref(readAttentionOnly())
+
+const attentionOnly = computed(() =>
+  state.value.explicitScope === null ? cachedAttention.value : state.value.explicitScope === WARN_SCOPE,
+)
+
+const effectiveScope = computed(() => (attentionOnly.value ? WARN_SCOPE : ''))
+
+// 写回地址只用地址自己的取值：缓存回填不应把偏好写进地址
+const explicitState = computed(() => ({
+  scope: state.value.explicitScope ?? '',
+  matched: state.value.matched,
+  keyword: state.value.keyword,
+  page: state.value.page,
+  size: state.value.size,
+}))
 
 const loading = ref(false)
 const errorMessage = ref('')
@@ -54,7 +71,8 @@ async function load() {
       page: state.value.page,
       size: state.value.size,
       matched: state.value.matched,
-      scope: state.value.scope,
+      keyword: state.value.keyword,
+      scope: effectiveScope.value,
       signal: controller.signal,
     })
     if (token !== seq) return
@@ -63,7 +81,7 @@ async function load() {
     const rows = Array.isArray(payload?.rows) ? payload.rows : []
     // 页码越界：总数不为 0 却取不到条目，说明停在了超过总页数的位置，回第一页
     if (total > 0 && rows.length === 0 && state.value.page > 1) {
-      router.replace({ query: toListQuery({ ...state.value, page: 1 }) })
+      router.replace({ query: toListQuery({ ...explicitState.value, page: 1 }) })
       return
     }
 
@@ -83,9 +101,15 @@ async function load() {
   }
 }
 
-// 集合、过滤条件或分页一变就重新取数；四个值放进一个 watch，不会取两次
+// 集合、关键词、匹配态或分页一变就重新取数；五个值放进一个 watch，不会取两次
 watch(
-  () => [state.value.scope, state.value.matched, state.value.page, state.value.size],
+  () => [
+    attentionOnly.value,
+    state.value.matched,
+    state.value.keyword,
+    state.value.page,
+    state.value.size,
+  ],
   load,
   { immediate: true },
 )
@@ -95,6 +119,7 @@ function toListQuery(next) {
   const query = {}
   if (next.scope === WARN_SCOPE) query.scope = WARN_SCOPE
   if (next.matched) query.matched = String(next.matched)
+  if (next.keyword) query.keyword = next.keyword
   if (Number(next.page) > 1) query.page = String(next.page)
   if (Number(next.size) !== DEFAULT_LIMIT) query.size = String(next.size)
   return query
@@ -104,10 +129,10 @@ function toListQuery(next) {
 watch(
   () => route.query,
   (query) => {
-    const canonical = toListQuery(state.value)
+    const canonical = toListQuery(explicitState.value)
 
-    // 四个键都要参与比对，否则新增的 scope 既纠正不了也保不住
-    const same = ['scope', 'matched', 'page', 'size'].every(
+    // 五个键都要参与比对，否则新增的键既纠正不了也保不住
+    const same = ['scope', 'matched', 'keyword', 'page', 'size'].every(
       (key) => String(query[key] ?? '') === String(canonical[key] ?? ''),
     )
     if (!same) router.replace({ query: canonical })
@@ -116,34 +141,57 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  clearKeywordTimer()
   seq += 1
   controller?.abort()
 })
 
 function updateQuery(patch) {
-  const next = {
-    scope: state.value.scope,
-    matched: state.value.matched,
-    page: state.value.page,
-    size: state.value.size,
-    ...patch,
-  }
-  router.push({ query: toListQuery(next) })
+  router.push({ query: toListQuery({ ...explicitState.value, ...patch }) })
 }
-
-const matchedOption = computed(() => state.value.matched || 'all')
-
-function onMatchedChange(value) {
-  // 切换过滤必须回到第一页，否则会停在一个不存在的页码上
-  updateQuery({ matched: value === 'all' ? '' : value, page: 1 })
-}
-
-const attentionOnly = computed(() => state.value.scope === WARN_SCOPE)
 
 function onScopeChange(event) {
-  // 与切换匹配态同理：集合变了，页码也必须回到第一页
-  updateQuery({ scope: event.target.checked ? WARN_SCOPE : '', page: 1 })
+  const checked = Boolean(event.target.checked)
+  // 缓存只在这里写：加载或地址恢复都不回写，否则分享链接会改掉本地偏好
+  cachedAttention.value = checked
+  writeAttentionOnly(checked)
+  // 集合变了，页码也必须回到第一页
+  updateQuery({ scope: checked ? WARN_SCOPE : '', page: 1 })
 }
+
+// 输入框持输入态（允许有尾部空白），地址持归一态；两者只在值不同时互相推动
+const keywordInput = ref(state.value.keyword)
+let keywordTimer = null
+
+function clearKeywordTimer() {
+  if (keywordTimer === null) return
+  clearTimeout(keywordTimer)
+  keywordTimer = null
+}
+
+function commitKeyword() {
+  clearKeywordTimer()
+  const term = normalizeKeyword(keywordInput.value)
+  // 地址已经是这个值（回灌或重复提交）：不再写一次，否则会把后退结果改回去
+  if (term === state.value.keyword) return
+  router.replace({ query: toListQuery({ ...explicitState.value, keyword: term, page: 1 }) })
+}
+
+function onKeywordValue(value) {
+  keywordInput.value = typeof value === 'string' ? value : ''
+  clearKeywordTimer()
+  keywordTimer = setTimeout(commitKeyword, KEYWORD_DEBOUNCE_MS)
+}
+
+// 地址是关键词语义的真相：后退、前进、直开时把输入框拉回地址里的值
+watch(
+  () => state.value.keyword,
+  (keyword) => {
+    if (normalizeKeyword(keywordInput.value) === keyword) return
+    clearKeywordTimer()
+    keywordInput.value = keyword
+  },
+)
 
 function onTableChange(pagination) {
   updateQuery({ page: pagination.current, size: pagination.pageSize })
@@ -197,24 +245,29 @@ function isEnterable(record) {
   return record.matched === 1
 }
 
-// 失败不能长相像「没有数据」：空态文案要区分加载中、取数失败、真的没有三种情况
+// 失败不能长成「没有数据」：空态文案要区分加载中、取数失败、组合恒空、关键词无命中与真的没有
 const emptyDescription = computed(() => {
   if (loading.value) return '正在加载…'
   if (errorMessage.value) return '暂时无法获取数据'
   // 该组合按后端契约恒为空集：说清是「没有交集」，别让人以为没数据
   if (attentionOnly.value && state.value.matched === '2') {
-    return '「未知」匹配态下不存在疑似未审或有差异的结论，请切换匹配态'
+    return '「未知」匹配态下不存在疑似未审或有差异的结论'
+  }
+  // 关键词是使用者自己能改的条件，必须与「真的没有数据」区分开
+  if (state.value.keyword) {
+    return `没有标题命中「${state.value.keyword}」的结论，可改写或清空关键词`
   }
   return '没有符合条件的结论'
 })
 
 function openDetail(record) {
   if (!isEnterable(record)) return
-  // 详情地址带上列表当前的过滤与分页，返回列表时才能原样恢复
+  // 详情地址带上列表当前的过滤与分页，返回列表时才能原样恢复；
+  // 关注集取生效值，因为详情要恢复的是使用者看到的视图
   router.push({
     name: 'match-result-detail',
     params: { id: record.id },
-    query: toListQuery(state.value),
+    query: toListQuery({ ...explicitState.value, scope: effectiveScope.value }),
   })
 }
 </script>
@@ -222,11 +275,17 @@ function openDetail(record) {
 <template>
   <div class="page">
     <header class="page-head">
-      <div>
-        <h1>稿件核查结论</h1>
-        <p>只读视图：按服务端分页与过滤列出对比结果，点开可查看两侧逐行对照。</p>
-      </div>
       <div class="filters">
+        <a-input-search
+          :value="keywordInput"
+          class="keyword-filter"
+          placeholder="按稿件名检索"
+          aria-label="关键词检索"
+          allow-clear
+          :maxlength="KEYWORD_MAX_LENGTH"
+          @update:value="onKeywordValue"
+          @search="commitKeyword"
+        />
         <a-checkbox
           :checked="attentionOnly"
           class="scope-filter"
@@ -235,13 +294,6 @@ function openDetail(record) {
         >
           仅看疑似未审或有差异
         </a-checkbox>
-        <a-select
-          :value="matchedOption"
-          :options="MATCHED_OPTIONS"
-          class="matched-filter"
-          aria-label="匹配态过滤"
-          @change="onMatchedChange"
-        />
       </div>
     </header>
 
@@ -343,24 +395,13 @@ function openDetail(record) {
 
 .page-head {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-end;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.page-head h1 {
-  margin: 0 0 4px;
-  font-size: 20px;
-}
-
-.page-head p {
-  margin: 0;
-  color: var(--pm-muted);
-}
-
-.matched-filter {
-  width: 160px;
+.keyword-filter {
+  width: 240px;
 }
 
 .filters {
@@ -368,6 +409,7 @@ function openDetail(record) {
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .scope-filter {

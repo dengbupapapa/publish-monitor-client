@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { buildListQuery, DEFAULT_LIMIT, listMatchResults, MAX_LIMIT, pageToPageNum, WARN_SCOPE } from './matchResults.js'
+import { buildListQuery, DEFAULT_LIMIT, KEYWORD_MAX_LENGTH, listMatchResults, MAX_LIMIT, normalizeKeyword, pageToPageNum, WARN_SCOPE } from './matchResults.js'
 
 test('buildListQuery 缺省不带 matched，页码从 0 起', () => {
   const query = new URLSearchParams(buildListQuery())
@@ -48,6 +48,37 @@ test('buildListQuery 只在 scope 为 warn 时带上关注集', () => {
   }
 })
 
+test('buildListQuery 只在关键词非空时带上', () => {
+  assert.equal(new URLSearchParams(buildListQuery({ keyword: '某某通知' })).get('keyword'), '某某通知')
+  for (const keyword of [undefined, null, '', '   ']) {
+    assert.equal(new URLSearchParams(buildListQuery({ keyword })).has('keyword'), false)
+  }
+})
+
+test('buildListQuery 关键词去首尾空白并截断到上限', () => {
+  assert.equal(new URLSearchParams(buildListQuery({ keyword: '  通知  ' })).get('keyword'), '通知')
+
+  const long = '稿'.repeat(KEYWORD_MAX_LENGTH + 30)
+  assert.equal(new URLSearchParams(buildListQuery({ keyword: long })).get('keyword').length, KEYWORD_MAX_LENGTH)
+})
+
+test('normalizeKeyword 空值与非字符串都收敛成字符串', () => {
+  assert.equal(normalizeKeyword(undefined), '')
+  assert.equal(normalizeKeyword(null), '')
+  assert.equal(normalizeKeyword(' a '), 'a')
+  assert.equal(normalizeKeyword(123), '123')
+})
+
+test('buildListQuery 关键词与关注集、匹配态叠加', () => {
+  const query = new URLSearchParams(
+    buildListQuery({ pageNum: 1, pageSize: 10, matched: '1', scope: WARN_SCOPE, keyword: '通知' }),
+  )
+  assert.equal(query.get('keyword'), '通知')
+  assert.equal(query.get('scope'), WARN_SCOPE)
+  assert.equal(query.get('matched'), '1')
+  assert.equal(query.get('pageNum'), '1')
+})
+
 test('pageToPageNum 由 1 起页码换算 0 起 pageNum', () => {
   assert.equal(pageToPageNum(1), 0)
   assert.equal(pageToPageNum(3), 2)
@@ -83,4 +114,27 @@ test('listMatchResults 只在关注集时透传 scope', async () => {
   assert.equal(scoped.searchParams.get('pageNum'), '1')
 
   assert.equal(new URL(calls[1], 'http://stub').searchParams.has('scope'), false)
+})
+
+test('listMatchResults 透传关键词，不传时不带该键', async () => {
+  const calls = []
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (url) => {
+    calls.push(String(url))
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ code: 200, msg: 'ok', data: { total: 0, rows: [] } }),
+    }
+  }
+
+  try {
+    await listMatchResults({ page: 1, keyword: ' 关于某某 ' })
+    await listMatchResults({ page: 1 })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+
+  assert.equal(new URL(calls[0], 'http://stub').searchParams.get('keyword'), '关于某某')
+  assert.equal(new URL(calls[1], 'http://stub').searchParams.has('keyword'), false)
 })

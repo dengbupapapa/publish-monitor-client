@@ -19,6 +19,23 @@ export const DEFAULT_LIMIT = 20
  */
 export const WARN_SCOPE = 'warn'
 
+/** 后端对关键词的硬上限（`keyword` 的 `max_length`）。 */
+export const KEYWORD_MAX_LENGTH = 128
+
+/**
+ * 关键词归一化：去首尾空白并按上限截断，空串表示「没有关键词」。
+ *
+ * 地址可能绕过输入框的长度限制，因此截断不能只留在控件上，否则超长取值会
+ * 让请求被后端拒绝。
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeKeyword(value) {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().slice(0, KEYWORD_MAX_LENGTH)
+}
+
 /**
  * 页码换算成后端从 0 起的 `pageNum`。
  *
@@ -34,8 +51,9 @@ export function pageToPageNum(page) {
  * 拼装列表查询串；`matched` 为空表示「全部」，不带这个参数。
  *
  * `scope` 只在取值为 `warn` 时发送，其余取值一律不带，避免把默认集合写进地址。
+ * `keyword` 归一化后为空就不带，长度在这里再截断一次作为最后一道保险。
  *
- * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null}} [params]
+ * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null}} [params]
  * @returns {string}
  */
 export function buildListQuery(params = {}) {
@@ -55,13 +73,18 @@ export function buildListQuery(params = {}) {
     search.set('scope', WARN_SCOPE)
   }
 
+  const keyword = normalizeKeyword(params.keyword)
+  if (keyword) {
+    search.set('keyword', keyword)
+  }
+
   return search.toString()
 }
 
 /**
  * 拉取结论列表。页码从 1 开始，请求时换算成后端从 0 起的 `pageNum`。
  *
- * @param {{page?:number, size?:number, matched?:number|string|null, scope?:string|null, signal?:AbortSignal}} [params]
+ * @param {{page?:number, size?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null, signal?:AbortSignal}} [params]
  * @returns {Promise<{total:number, rows:Array}>}
  */
 export function listMatchResults(params = {}) {
@@ -70,6 +93,7 @@ export function listMatchResults(params = {}) {
     pageSize: params.size,
     matched: params.matched,
     scope: params.scope,
+    keyword: params.keyword,
   })
   return request(`/match-results?${query}`, { signal: params.signal })
 }
