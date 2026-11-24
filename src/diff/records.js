@@ -128,7 +128,7 @@ export function summarizeChanges(records) {
 
 /** 列表「结果」列的展示分支与固定文案。 */
 const RESULT_TEXT = {
-  suspectedUnreviewed: { text: '疑似未审', hint: '发布侧未匹配到内部稿件，疑似没有经过内部审核' },
+  suspectedUnreviewed: { text: '疑似未审', hint: '发布稿件未匹配到内部稿件，疑似没有经过内部审核' },
   notCompared: { text: '未完成比对', hint: '匹配态未知，两侧尚未完成比对' },
   pending: { text: '待核查', hint: '' },
   processing: { text: '核查中', hint: '' },

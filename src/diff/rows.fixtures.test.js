@@ -3,7 +3,7 @@
  *
  * 三份 fixture 的来源：
  * - `asymmetric-2to1.json`  后端 `output/md_diff_preview_data.json`，两侧 22/23 块，
- *   一条 replaced 记录参考侧 2 处、发布侧 1 处；
+ *   一条 replaced 记录内部稿件 2 处、发布稿件 1 处；
  * - `multi-row-record.json` 后端 `output/md_diff_payload.json` 的一页（投影成 preview 形状），
  *   两侧 22/34 块，一条 added 记录 8 个区间落在 8 行；
  * - `cross-row-order-swap.json` 构造样本：两段顺序互换，对应后端 replace 组配对交叉、
@@ -59,7 +59,7 @@ test('单侧行：整段只在一侧存在时，空侧不占块', () => {
   assert.deepEqual(singleSideRows(rows), [{ reference: -1, input: 7 }])
 })
 
-test('一条记录多处：参考侧 2 处、发布侧 1 处落在同一行', () => {
+test('一条记录多处：内部稿件 2 处、发布稿件 1 处落在同一行', () => {
   const fixture = load('asymmetric-2to1.json')
   const { blocks, rows } = planOf(fixture)
 

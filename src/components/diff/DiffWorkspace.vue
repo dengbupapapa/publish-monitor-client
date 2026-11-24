@@ -255,7 +255,7 @@ watch(
       <section class="compare">
         <div class="compare-head">
           <div class="head-cell">
-            <div class="head-side">参考侧</div>
+            <div class="head-side">内部稿件</div>
             <div class="head-title" :class="{ empty: !article.reference_title }">
               {{ article.reference_title || '（无标题）' }}
             </div>
@@ -263,7 +263,7 @@ watch(
           </div>
           <div class="head-mid"></div>
           <div class="head-cell">
-            <div class="head-side">发布侧</div>
+            <div class="head-side">发布稿件</div>
             <div class="head-title" :class="{ empty: !article.input_title }">
               {{ article.input_title || '（无标题）' }}
             </div>

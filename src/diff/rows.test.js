@@ -65,7 +65,7 @@ test('planRows 一条区间盖住多块时逐块成行', () => {
     { kind: 'same', reference: rangeOfBlock(0), input: rangeOfBlock(0) },
     { kind: 'removed', reference: { start: 10, end: 29 } },
   ]
-  // 参考侧多出两块、发布侧没有对应，末尾各自成行；这里先看映射倒退的反例
+  // 内部稿件多出两块、发布稿件没有对应，末尾各自成行；这里先看映射倒退的反例
   assert.equal(planRows(blocks(3), blocks(1), entries), null)
 })
 
@@ -78,7 +78,7 @@ test('planRows 映射顺序倒退时返回 null', () => {
 })
 
 test('planRows 映射没覆盖到的块由尾部补齐', () => {
-  // 参考侧有两块，映射只认领了第一块；第二块仍要出现，不能丢
+  // 内部稿件有两块，映射只认领了第一块；第二块仍要出现，不能丢
   const entries = [{ kind: 'same', reference: rangeOfBlock(0), input: rangeOfBlock(0) }]
   assert.deepEqual(planRows(blocks(2), blocks(1), entries), [
     { reference: 0, input: 0 },

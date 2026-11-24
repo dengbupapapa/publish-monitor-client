@@ -5,8 +5,8 @@ const props = defineProps({
   row: { type: Object, required: true },
   refAtoms: { type: Array, required: true },
   inpAtoms: { type: Array, required: true },
-  refLabel: { type: String, default: '参考侧' },
-  inpLabel: { type: String, default: '发布侧' },
+  refLabel: { type: String, default: '内部稿件' },
+  inpLabel: { type: String, default: '发布稿件' },
 })
 
 // 行规格里 -1 表示这一侧在本行没有内容

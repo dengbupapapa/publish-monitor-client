@@ -9,9 +9,10 @@ export const SIDE_REFERENCE = 'reference'
 export const SIDE_INPUT = 'input'
 export const SIDES = [SIDE_REFERENCE, SIDE_INPUT]
 
+// 两侧标签与列表页的「内部稿件名 / 发布稿件名」列名保持一致，全站只有一个叫法
 export const SIDE_LABELS = {
-  [SIDE_REFERENCE]: '参考侧',
-  [SIDE_INPUT]: '发布侧',
+  [SIDE_REFERENCE]: '内部稿件',
+  [SIDE_INPUT]: '发布稿件',
 }
 
 /** 两侧摘要的拼接符，与后端 `side_text` 一致。 */

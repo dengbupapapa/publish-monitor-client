@@ -124,7 +124,7 @@ test('changeSummary 出现未知方向时退为总数', () => {
   assert.equal(result.text, '3 处')
 })
 
-test('changeSummary 未匹配与参考侧缺失都判为疑似未审', () => {
+test('changeSummary 未匹配与内部稿件缺失都判为疑似未审', () => {
   const unmatched = changeSummary(item({ matched: 0, reference: null }))
   assert.equal(unmatched.tone, 'suspectedUnreviewed')
   assert.equal(unmatched.text, '疑似未审')

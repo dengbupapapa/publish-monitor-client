@@ -13,6 +13,13 @@ export const MAX_LIMIT = 200
 export const DEFAULT_LIMIT = 20
 
 /**
+ * 后端约定的关注集取值：未匹配的结论，或匹配成功且存在差异记录的结论。
+ *
+ * `all` 等同不传，因此只有这一个取值会进查询串。
+ */
+export const WARN_SCOPE = 'warn'
+
+/**
  * 页码换算成后端从 0 起的 `pageNum`。
  *
  * @param {number} page 从 1 开始
@@ -26,7 +33,9 @@ export function pageToPageNum(page) {
 /**
  * 拼装列表查询串；`matched` 为空表示「全部」，不带这个参数。
  *
- * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null}} [params]
+ * `scope` 只在取值为 `warn` 时发送，其余取值一律不带，避免把默认集合写进地址。
+ *
+ * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null}} [params]
  * @returns {string}
  */
 export function buildListQuery(params = {}) {
@@ -42,13 +51,17 @@ export function buildListQuery(params = {}) {
     search.set('matched', String(matched))
   }
 
+  if (params.scope === WARN_SCOPE) {
+    search.set('scope', WARN_SCOPE)
+  }
+
   return search.toString()
 }
 
 /**
  * 拉取结论列表。页码从 1 开始，请求时换算成后端从 0 起的 `pageNum`。
  *
- * @param {{page?:number, size?:number, matched?:number|string|null, signal?:AbortSignal}} [params]
+ * @param {{page?:number, size?:number, matched?:number|string|null, scope?:string|null, signal?:AbortSignal}} [params]
  * @returns {Promise<{total:number, rows:Array}>}
  */
 export function listMatchResults(params = {}) {
@@ -56,6 +69,7 @@ export function listMatchResults(params = {}) {
     pageNum: pageToPageNum(params.page),
     pageSize: params.size,
     matched: params.matched,
+    scope: params.scope,
   })
   return request(`/match-results?${query}`, { signal: params.signal })
 }

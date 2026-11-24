@@ -91,7 +91,6 @@ function backToList() {
   <div class="detail-page">
     <header class="detail-head">
       <a-button type="link" size="small" @click="backToList">← 返回列表</a-button>
-      <span class="detail-title">结论 #{{ id }}</span>
       <span v-if="view?.article.coordinate_version" class="detail-meta">
         坐标版本 v{{ view.article.coordinate_version }}
       </span>
@@ -156,10 +155,6 @@ function backToList() {
   padding: 6px 14px;
   border-bottom: 1px solid var(--pm-line);
   background: var(--pm-panel);
-}
-
-.detail-title {
-  font-weight: 600;
 }
 
 .detail-meta {

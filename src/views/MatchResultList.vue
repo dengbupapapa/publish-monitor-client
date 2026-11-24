@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { DEFAULT_LIMIT, listMatchResults } from '@/api/matchResults'
+import { DEFAULT_LIMIT, listMatchResults, WARN_SCOPE } from '@/api/matchResults'
 import { KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '@/diff/constants'
 import { changeSummary } from '@/diff/records'
 
@@ -29,7 +29,10 @@ const state = computed(() => {
   const rawSize = Math.floor(Number(route.query.size))
   const size = SIZE_OPTIONS.includes(rawSize) ? rawSize : DEFAULT_LIMIT
 
-  return { matched, page, size }
+  // 集合只有「不传」与「关注集」两种形态，其它取值一律当成未勾选
+  const scope = String(route.query.scope ?? '') === WARN_SCOPE ? WARN_SCOPE : ''
+
+  return { matched, page, size, scope }
 })
 
 const loading = ref(false)
@@ -51,6 +54,7 @@ async function load() {
       page: state.value.page,
       size: state.value.size,
       matched: state.value.matched,
+      scope: state.value.scope,
       signal: controller.signal,
     })
     if (token !== seq) return
@@ -79,12 +83,17 @@ async function load() {
   }
 }
 
-// 过滤条件或分页一变就重新取数；三件事放进一个 watch，不会取两次
-watch(() => [state.value.matched, state.value.page, state.value.size], load, { immediate: true })
+// 集合、过滤条件或分页一变就重新取数；四个值放进一个 watch，不会取两次
+watch(
+  () => [state.value.scope, state.value.matched, state.value.page, state.value.size],
+  load,
+  { immediate: true },
+)
 
 // 把过滤与分页折叠成地址 query：缺省值不写回，保持地址干净
 function toListQuery(next) {
   const query = {}
+  if (next.scope === WARN_SCOPE) query.scope = WARN_SCOPE
   if (next.matched) query.matched = String(next.matched)
   if (Number(next.page) > 1) query.page = String(next.page)
   if (Number(next.size) !== DEFAULT_LIMIT) query.size = String(next.size)
@@ -97,7 +106,8 @@ watch(
   (query) => {
     const canonical = toListQuery(state.value)
 
-    const same = ['matched', 'page', 'size'].every(
+    // 四个键都要参与比对，否则新增的 scope 既纠正不了也保不住
+    const same = ['scope', 'matched', 'page', 'size'].every(
       (key) => String(query[key] ?? '') === String(canonical[key] ?? ''),
     )
     if (!same) router.replace({ query: canonical })
@@ -111,7 +121,13 @@ onBeforeUnmount(() => {
 })
 
 function updateQuery(patch) {
-  const next = { matched: state.value.matched, page: state.value.page, size: state.value.size, ...patch }
+  const next = {
+    scope: state.value.scope,
+    matched: state.value.matched,
+    page: state.value.page,
+    size: state.value.size,
+    ...patch,
+  }
   router.push({ query: toListQuery(next) })
 }
 
@@ -120,6 +136,13 @@ const matchedOption = computed(() => state.value.matched || 'all')
 function onMatchedChange(value) {
   // 切换过滤必须回到第一页，否则会停在一个不存在的页码上
   updateQuery({ matched: value === 'all' ? '' : value, page: 1 })
+}
+
+const attentionOnly = computed(() => state.value.scope === WARN_SCOPE)
+
+function onScopeChange(event) {
+  // 与切换匹配态同理：集合变了，页码也必须回到第一页
+  updateQuery({ scope: event.target.checked ? WARN_SCOPE : '', page: 1 })
 }
 
 function onTableChange(pagination) {
@@ -178,6 +201,10 @@ function isEnterable(record) {
 const emptyDescription = computed(() => {
   if (loading.value) return '正在加载…'
   if (errorMessage.value) return '暂时无法获取数据'
+  // 该组合按后端契约恒为空集：说清是「没有交集」，别让人以为没数据
+  if (attentionOnly.value && state.value.matched === '2') {
+    return '「未知」匹配态下不存在疑似未审或有差异的结论，请切换匹配态'
+  }
   return '没有符合条件的结论'
 })
 
@@ -199,13 +226,23 @@ function openDetail(record) {
         <h1>稿件核查结论</h1>
         <p>只读视图：按服务端分页与过滤列出对比结果，点开可查看两侧逐行对照。</p>
       </div>
-      <a-select
-        :value="matchedOption"
-        :options="MATCHED_OPTIONS"
-        class="matched-filter"
-        aria-label="匹配态过滤"
-        @change="onMatchedChange"
-      />
+      <div class="filters">
+        <a-checkbox
+          :checked="attentionOnly"
+          class="scope-filter"
+          title="未匹配到内部稿，或匹配成功且存在差异；两侧完全一致与未完成比对不在其中"
+          @change="onScopeChange"
+        >
+          仅看疑似未审或有差异
+        </a-checkbox>
+        <a-select
+          :value="matchedOption"
+          :options="MATCHED_OPTIONS"
+          class="matched-filter"
+          aria-label="匹配态过滤"
+          @change="onMatchedChange"
+        />
+      </div>
     </header>
 
     <a-alert
@@ -324,6 +361,17 @@ function openDetail(record) {
 
 .matched-filter {
   width: 160px;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.scope-filter {
+  white-space: nowrap;
 }
 
 .load-error {
