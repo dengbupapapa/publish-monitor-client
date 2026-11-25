@@ -1,20 +1,68 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 
 import {
   createScheduledTask,
+  DEFAULT_LIMIT,
   deleteScheduledTask,
+  listJobTypes,
   listScheduledTasks,
-  normalizeName,
   setScheduledTaskEnabled,
-  validateForm,
+  updateScheduledTask,
 } from '@/api/scheduledTasks'
-import CronInput from '@/components/cron/CronInput.vue'
+import ScheduledTaskForm from '@/components/schedule/ScheduledTaskForm.vue'
 
-// 无分页无筛选：全量列表用本地 ref 即可，地址栏留给结论列表的分享场景
+const route = useRoute()
+const router = useRouter()
+
+const SIZE_OPTIONS = [10, 20, 50, 100]
+
+// 地址即状态：非法值一律回落缺省，手改地址不会把页面弄坏
+const state = computed(() => {
+  const rawPage = Math.floor(Number(route.query.page))
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1
+
+  const rawSize = Math.floor(Number(route.query.size))
+  const size = SIZE_OPTIONS.includes(rawSize) ? rawSize : DEFAULT_LIMIT
+
+  const jobType = typeof route.query.job_type === 'string' ? route.query.job_type.trim() : ''
+
+  return { page, size, jobType }
+})
+
+// 把过滤与分页折叠成地址 query：缺省值不写回，保持地址干净
+function toQuery(next) {
+  const query = {}
+  if (next.jobType) query.job_type = next.jobType
+  if (Number(next.page) > 1) query.page = String(next.page)
+  if (Number(next.size) !== DEFAULT_LIMIT) query.size = String(next.size)
+  return query
+}
+
+function updateQuery(patch) {
+  router.push({ query: toQuery({ ...state.value, ...patch }) })
+}
+
+// 把冗余或非法的地址参数改写成规范形态，保持可分享
+watch(
+  () => route.query,
+  (query) => {
+    const canonical = toQuery(state.value)
+    const same = ['job_type', 'page', 'size'].every(
+      (key) => String(query[key] ?? '') === String(canonical[key] ?? ''),
+    )
+    if (!same) router.replace({ query: canonical })
+  },
+  { immediate: true },
+)
+
+// ---- 数据加载 ----
+
 const loading = ref(false)
 const errorMessage = ref('')
-const tasks = ref([])
+const pageData = ref({ total: 0, rows: [], page: 1, size: DEFAULT_LIMIT })
 
 let seq = 0
 let controller = null
@@ -27,38 +75,121 @@ async function load() {
   errorMessage.value = ''
 
   try {
-    const rows = await listScheduledTasks({ signal: controller.signal })
+    const payload = await listScheduledTasks({
+      page: state.value.page,
+      size: state.value.size,
+      jobType: state.value.jobType,
+      signal: controller.signal,
+    })
     if (token !== seq) return
-    tasks.value = Array.isArray(rows) ? rows : []
+
+    // 页码越界：总数不为 0 却取不到条目，回第一页而不是显示空表
+    if (payload.total > 0 && payload.rows.length === 0 && state.value.page > 1) {
+      router.replace({ query: toQuery({ ...state.value, page: 1 }) })
+      return
+    }
+
+    pageData.value = {
+      total: payload.total,
+      rows: payload.rows,
+      page: state.value.page,
+      size: state.value.size,
+    }
   } catch (error) {
     if (token !== seq || error.name === 'AbortError') return
     // 失败不能显示成「没有数据」：清空列表并交给错误提示
     errorMessage.value = error.message || '加载失败'
-    tasks.value = []
+    pageData.value = { total: 0, rows: [], page: state.value.page, size: state.value.size }
   } finally {
     if (token === seq) loading.value = false
   }
 }
 
-onMounted(load)
+watch(() => [state.value.page, state.value.size, state.value.jobType], load, { immediate: true })
+
 onBeforeUnmount(() => {
   seq += 1
   controller?.abort()
 })
 
+// ---- 流程类型字典 ----
+
+const jobTypes = ref([])
+
+async function loadJobTypes() {
+  try {
+    jobTypes.value = await listJobTypes()
+  } catch {
+    // 字典失败不阻塞列表：展示回退原始标识，新建/编辑时表单会提示无法加载
+    jobTypes.value = []
+  }
+}
+
+onMounted(loadJobTypes)
+
+const jobTypeLabels = computed(() => {
+  const map = new Map()
+  for (const item of jobTypes.value) {
+    if (item && item.value) map.set(item.value, item.label || item.value)
+  }
+  return map
+})
+
+function jobTypeLabel(value) {
+  return jobTypeLabels.value.get(value) || value || '—'
+}
+
+const jobTypeFilterOptions = computed(() => [
+  { value: '', label: '全部' },
+  ...jobTypes.value
+    .filter((item) => item && item.value)
+    .map((item) => ({ value: item.value, label: item.label || item.value })),
+])
+
+function onFilterChange(value) {
+  updateQuery({ jobType: value || '', page: 1 })
+}
+
+async function refresh() {
+  await Promise.all([loadJobTypes(), load()])
+}
+
+// ---- 表格 ----
+
 const columns = [
   { title: '编号', key: 'ordinal', width: 72 },
   { title: '名称', key: 'name', ellipsis: true },
-  { title: 'cron 表达式', key: 'cron', ellipsis: true },
-  { title: '启用', key: 'enabled', width: 96 },
-  { title: '上次触发', key: 'last_fired_at', width: 190 },
-  { title: '操作', key: 'actions', width: 120 },
+  { title: '任务类型', key: 'job_type', width: 150, ellipsis: true },
+  { title: '平台', key: 'biz_scope', width: 120, ellipsis: true },
+  { title: '账号', key: 'biz_type', width: 120, ellipsis: true },
+  { title: 'cron 表达式', key: 'cron', width: 160, ellipsis: true },
+  { title: '启用', key: 'enabled', width: 88 },
+  { title: '上次触发', key: 'last_fired_at', width: 180 },
+  { title: '操作', key: 'actions', width: 130 },
 ]
 
-// 序号是展示用的行号；行标识仍由 row-key 取 record.id
+// 序号按页码与条数派生，与任务编号无关；行标识仍由 row-key 取 record.id
 const rows = computed(() =>
-  tasks.value.map((record, index) => ({ ...record, ordinal: index + 1 })),
+  errorMessage.value
+    ? []
+    : pageData.value.rows.map((record, index) => ({
+        ...record,
+        ordinal: (pageData.value.page - 1) * pageData.value.size + index + 1,
+      })),
 )
+
+const pagination = computed(() => ({
+  current: state.value.page,
+  pageSize: state.value.size,
+  total: pageData.value.total,
+  showSizeChanger: true,
+  pageSizeOptions: SIZE_OPTIONS.map(String),
+  showTotal: (total) => `共 ${total} 条`,
+}))
+
+function onTableChange(paginationState) {
+  updateQuery({ page: paginationState.current, size: paginationState.pageSize })
+}
 
 function formatTime(value) {
   if (!value) return '—'
@@ -67,22 +198,20 @@ function formatTime(value) {
   return date.toLocaleString('zh-CN', { hour12: false })
 }
 
-function formatCron(record) {
-  return `${record.cron}${record.enabled ? '' : '（已停用）'}`
-}
-
 // ---- 启停 ----
 
 // 按行维护开关的提交态：请求中禁用，失败回弹
 const togglingIds = ref(new Set())
+const actionError = ref('')
 
 async function onEnabledChange(record, checked) {
   togglingIds.value = new Set([...togglingIds.value, record.id])
   try {
     await setScheduledTaskEnabled(record.id, checked)
-    record.enabled = checked
+    // 直接改数据源里的原对象：rows 是派生视图，改副本不会持久
+    const target = pageData.value.rows.find((item) => item.id === record.id)
+    if (target) target.enabled = checked
   } catch (error) {
-    // 开关绑定的值没动过，无需回弹；只需说清失败
     actionError.value = `启停失败：${error.message || '请稍后重试'}`
   } finally {
     const next = new Set(togglingIds.value)
@@ -94,7 +223,6 @@ async function onEnabledChange(record, checked) {
 // ---- 删除 ----
 
 const deletingIds = ref(new Set())
-const actionError = ref('')
 
 async function onDelete(record) {
   deletingIds.value = new Set([...deletingIds.value, record.id])
@@ -111,69 +239,45 @@ async function onDelete(record) {
   }
 }
 
-// ---- 创建 ----
+// ---- 新建 / 编辑共用表单 ----
 
-const creating = ref(false)
+const editorOpen = ref(false)
+const editorMode = ref('create')
+const editingTask = ref(null)
 const submitting = ref(false)
-const form = reactive({ name: '', cron: '' })
-const formErrors = reactive({ name: '', cron: '' })
-const formError = ref('')
+const formRef = ref(null)
 
 function openCreate() {
-  form.name = ''
-  form.cron = ''
-  formErrors.name = ''
-  formErrors.cron = ''
-  formError.value = ''
-  creating.value = true
+  editorMode.value = 'create'
+  editingTask.value = null
+  editorOpen.value = true
 }
 
-function closeCreate() {
-  creating.value = false
+function openEdit(record) {
+  editorMode.value = 'edit'
+  editingTask.value = record
+  editorOpen.value = true
 }
 
-function resetServerError() {
-  formErrors.name = ''
-  formErrors.cron = ''
-  formError.value = ''
+function onModalOk() {
+  formRef.value?.submit()
 }
 
-function validateFields() {
-  const errors = validateForm(form)
-  formErrors.name = errors.name || ''
-  formErrors.cron = errors.cron || ''
-  return Object.keys(errors).length === 0
-}
-
-// 字段一改就清掉旧错误：不能让使用者修好了还一直看着红字
-watch(
-  () => [form.name, form.cron],
-  () => {
-    formErrors.name = ''
-    formErrors.cron = ''
-    formError.value = ''
-  },
-)
-
-async function submitCreate() {
-  if (!validateFields()) return
-
+async function onSubmit(payload) {
   submitting.value = true
-  resetServerError()
+  const isEdit = editorMode.value === 'edit'
   try {
-    await createScheduledTask({ name: form.name, cron: form.cron })
-    closeCreate()
+    if (isEdit) {
+      await updateScheduledTask(editingTask.value.id, payload)
+    } else {
+      await createScheduledTask(payload)
+    }
+    editorOpen.value = false
+    message.success(isEdit ? '保存成功' : '创建成功')
     await load()
   } catch (error) {
-    // 服务端契约：重名 → HTTP 409（业务码 409xx）；参数校验失败 → HTTP 422。
-    // 校验失败必须保留表单让用户改，不能弹窗一关了之。
-    if (error.status === 409 || String(error.code).startsWith('409')) {
-      formErrors.name = error.message || '任务名称已存在'
-    } else if (error.status === 422) {
-      formErrors.cron = error.message || '服务端校验失败，请检查表达式'
-    } else {
-      formError.value = `创建失败：${error.message || '请稍后重试'}`
-    }
+    // 服务端校验失败必须保留表单让用户改，并按业务码归位到对应字段
+    formRef.value?.applyServerError(error)
   } finally {
     submitting.value = false
   }
@@ -182,6 +286,7 @@ async function submitCreate() {
 const emptyDescription = computed(() => {
   if (loading.value) return '正在加载…'
   if (errorMessage.value) return '暂时无法获取数据'
+  if (state.value.jobType) return '没有该任务类型的任务'
   return '还没有定时任务，点击「新建任务」创建第一个'
 })
 </script>
@@ -189,8 +294,17 @@ const emptyDescription = computed(() => {
 <template>
   <div class="page">
     <header class="page-head">
+      <div class="filters">
+        <a-select
+          :value="state.jobType"
+          :options="jobTypeFilterOptions"
+          class="type-filter"
+          aria-label="按任务类型筛选"
+          @change="onFilterChange"
+        />
+      </div>
       <div class="actions">
-        <a-button :loading="loading" @click="load">刷新</a-button>
+        <a-button :loading="loading" @click="refresh">刷新</a-button>
         <a-button type="primary" @click="openCreate">新建任务</a-button>
       </div>
     </header>
@@ -220,12 +334,13 @@ const emptyDescription = computed(() => {
 
     <a-table
       :columns="columns"
-      :data-source="errorMessage ? [] : rows"
+      :data-source="rows"
       :loading="loading"
-      :pagination="false"
-      :scroll="{ x: 820 }"
+      :pagination="pagination"
+      :scroll="{ x: 1200 }"
       :row-key="(record) => record.id"
       size="middle"
+      @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'ordinal'">
@@ -236,8 +351,22 @@ const emptyDescription = computed(() => {
           <span :title="record.name">{{ record.name }}</span>
         </template>
 
+        <template v-else-if="column.key === 'job_type'">
+          <span :title="record.job_type">{{ jobTypeLabel(record.job_type) }}</span>
+        </template>
+
+        <template v-else-if="column.key === 'biz_scope'">
+          <span v-if="record.biz_scope" :title="record.biz_scope">{{ record.biz_scope }}</span>
+          <span v-else class="placeholder">—</span>
+        </template>
+
+        <template v-else-if="column.key === 'biz_type'">
+          <span v-if="record.biz_type" :title="record.biz_type">{{ record.biz_type }}</span>
+          <span v-else class="placeholder">—</span>
+        </template>
+
         <template v-else-if="column.key === 'cron'">
-          <span class="mono" :title="formatCron(record)">{{ record.cron }}</span>
+          <span class="mono" :title="record.cron">{{ record.cron }}</span>
         </template>
 
         <template v-else-if="column.key === 'enabled'">
@@ -256,6 +385,7 @@ const emptyDescription = computed(() => {
         </template>
 
         <template v-else-if="column.key === 'actions'">
+          <a-button type="link" size="small" @click="openEdit(record)">编辑</a-button>
           <a-popconfirm
             :title="`确认删除「${record.name}」？删除后不可恢复`"
             ok-text="删除"
@@ -282,39 +412,23 @@ const emptyDescription = computed(() => {
     </a-table>
 
     <a-modal
-      v-model:open="creating"
-      title="新建定时任务"
+      v-model:open="editorOpen"
+      :title="editorMode === 'edit' ? '编辑定时任务' : '新建定时任务'"
       :confirm-loading="submitting"
       :mask-closable="!submitting"
-      ok-text="创建"
+      :destroy-on-close="true"
+      :ok-text="editorMode === 'edit' ? '保存' : '创建'"
       cancel-text="取消"
-      @ok="submitCreate"
+      @ok="onModalOk"
     >
-      <a-form layout="vertical" @submit.prevent>
-        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
-        <a-form-item
-          label="名称"
-          required
-          :validate-status="formErrors.name ? 'error' : ''"
-          :help="formErrors.name"
-        >
-          <a-input
-            v-model:value="form.name"
-            :maxlength="255"
-            placeholder="任务名称，全局唯一"
-            @blur="form.name = normalizeName(form.name)"
-          />
-        </a-form-item>
-
-        <a-form-item
-          label="cron 表达式"
-          required
-          :validate-status="formErrors.cron ? 'error' : ''"
-          :help="formErrors.cron"
-        >
-          <CronInput v-model="form.cron" :disabled="submitting" />
-        </a-form-item>
-      </a-form>
+      <ScheduledTaskForm
+        ref="formRef"
+        :mode="editorMode"
+        :initial="editingTask"
+        :job-types="jobTypes"
+        :submitting="submitting"
+        @submit="onSubmit"
+      />
     </a-modal>
   </div>
 </template>
@@ -328,8 +442,21 @@ const emptyDescription = computed(() => {
 
 .page-head {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.type-filter {
+  width: 200px;
 }
 
 .actions {
@@ -339,12 +466,6 @@ const emptyDescription = computed(() => {
 
 .load-error {
   margin-bottom: 16px;
-}
-
-.form-error {
-  margin: 0 0 12px;
-  color: #ff8b8b;
-  font-size: 12px;
 }
 
 .mono {
