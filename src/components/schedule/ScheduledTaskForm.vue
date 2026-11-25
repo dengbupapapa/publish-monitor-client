@@ -13,13 +13,12 @@ const props = defineProps({
 
 const emit = defineEmits(['submit'])
 
-// 只承载界面暴露的字段：biz_name / params 不出现，编辑时也就不发送
+// 只承载界面暴露的字段：biz_type / biz_name / params 不出现，编辑时也就不发送
 const form = reactive({
   name: '',
   job_type: '',
   cron: '',
   biz_scope: '',
-  biz_type: '',
 })
 
 const errors = reactive({ name: '', job_type: '', cron: '' })
@@ -37,27 +36,15 @@ function initFromProps() {
     form.job_type = props.initial.job_type || ''
     form.cron = props.initial.cron || ''
     form.biz_scope = props.initial.biz_scope || ''
-    form.biz_type = props.initial.biz_type || ''
     return
   }
   form.name = ''
   form.cron = ''
   form.biz_scope = ''
-  form.biz_type = ''
-  form.job_type = props.jobTypes[0]?.value || ''
+  form.job_type = ''
 }
 
 onMounted(initFromProps)
-
-// 字典接口可能晚于组件挂载返回：创建态若还没选中类型，补上第一个可选项
-watch(
-  () => props.jobTypes,
-  (list) => {
-    if (props.mode === 'create' && !form.job_type && list.length) {
-      form.job_type = list[0].value
-    }
-  },
-)
 
 // 字段一改就清掉旧错误：不能让使用者修好了还一直看着红字
 watch(
@@ -134,25 +121,14 @@ defineExpose({ submit, applyServerError })
       />
     </a-form-item>
 
-    <div class="scope-row">
-      <a-form-item label="平台">
-        <a-input
-          v-model:value="form.biz_scope"
-          :maxlength="128"
-          :disabled="submitting"
-          placeholder="如：微信公众号（可留空）"
-        />
-      </a-form-item>
-
-      <a-form-item label="账号">
-        <a-input
-          v-model:value="form.biz_type"
-          :maxlength="128"
-          :disabled="submitting"
-          placeholder="账号标识（可留空）"
-        />
-      </a-form-item>
-    </div>
+    <a-form-item label="账号">
+      <a-input
+        v-model:value="form.biz_scope"
+        :maxlength="128"
+        :disabled="submitting"
+        placeholder="账号标识（可留空）"
+      />
+    </a-form-item>
 
     <a-form-item
       label="cron 表达式"
@@ -170,15 +146,5 @@ defineExpose({ submit, applyServerError })
   margin: 0 0 12px;
   color: #ff8b8b;
   font-size: 12px;
-}
-
-.scope-row {
-  display: flex;
-  gap: 12px;
-}
-
-.scope-row > * {
-  flex: 1;
-  min-width: 0;
 }
 </style>

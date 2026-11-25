@@ -97,12 +97,12 @@ test('buildSchedulePayload 只产出台面字段、空文本归一为空串', ()
       name: '  任务 ',
       job_type: ' article_diff ',
       cron: ' 0 8 * * * ',
-      biz_scope: '',
-      biz_type: undefined,
+      biz_scope: ' 公众号 ',
     }),
-    { name: '任务', job_type: 'article_diff', cron: '0 8 * * *', biz_scope: '', biz_type: '' },
+    { name: '任务', job_type: 'article_diff', cron: '0 8 * * *', biz_scope: '公众号' },
   )
   const payload = buildSchedulePayload({})
+  assert.ok(!('biz_type' in payload))
   assert.ok(!('biz_name' in payload))
   assert.ok(!('params' in payload))
   assert.equal(payload.biz_scope, '')
@@ -188,7 +188,7 @@ test('listJobTypes 请求 GET /job-types 并返回数组', async () => {
   assert.equal(fetchImpl.calls[0].options.method, 'GET')
 })
 
-test('createScheduledTask POST 归一化后的字段（含 job_type 与业务名称）', async () => {
+test('createScheduledTask POST 归一化后的字段（含 job_type 与 biz_scope）', async () => {
   const fetchImpl = recordingFetch({
     code: 200,
     msg: 'success',
@@ -201,7 +201,6 @@ test('createScheduledTask POST 归一化后的字段（含 job_type 与业务名
       job_type: ' article_diff ',
       cron: ' 0 8 * * * ',
       biz_scope: ' 公众号 ',
-      biz_type: ' 品牌A ',
     },
     { fetchImpl, base: '/api' },
   )
@@ -215,7 +214,6 @@ test('createScheduledTask POST 归一化后的字段（含 job_type 与业务名
     job_type: 'article_diff',
     cron: '0 8 * * *',
     biz_scope: '公众号',
-    biz_type: '品牌A',
   })
 })
 

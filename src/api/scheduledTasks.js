@@ -118,12 +118,13 @@ export function validateForm(form = {}) {
 }
 
 /**
- * 由表单值构造提交载荷：只含界面暴露的五个字段，空文本归一为空串（不传 null）。
+ * 由表单值构造提交载荷：只含界面暴露的四个字段，空文本归一为空串（不传 null）。
  *
- * `biz_name` / `params` 不在界面暴露，因此这里也不产出，编辑时它们保持原值。
+ * `biz_type` / `biz_name` / `params` 不在界面暴露，因此这里也不产出，
+ * 编辑时它们保持原值。
  *
- * @param {{name?:string, job_type?:string, cron?:string, biz_scope?:string, biz_type?:string}} form
- * @returns {{name:string, job_type:string, cron:string, biz_scope:string, biz_type:string}}
+ * @param {{name?:string, job_type?:string, cron?:string, biz_scope?:string}} form
+ * @returns {{name:string, job_type:string, cron:string, biz_scope:string}}
  */
 export function buildSchedulePayload(form = {}) {
   return {
@@ -131,7 +132,6 @@ export function buildSchedulePayload(form = {}) {
     job_type: String(form.job_type || '').trim(),
     cron: String(form.cron || '').trim(),
     biz_scope: String(form.biz_scope ?? '').trim(),
-    biz_type: String(form.biz_type ?? '').trim(),
   }
 }
 
@@ -208,7 +208,7 @@ export async function listJobTypes(options = {}) {
 /**
  * 创建定时任务。
  *
- * @param {{name:string, job_type:string, cron:string, biz_scope?:string, biz_type?:string}} payload
+ * @param {{name:string, job_type:string, cron:string, biz_scope?:string}} payload
  * @param {{signal?:AbortSignal}} [options]
  * @returns {Promise<any>}
  */
@@ -220,7 +220,6 @@ export function createScheduledTask(payload, options = {}) {
       job_type: String(payload.job_type || '').trim(),
       cron: String(payload.cron || '').trim(),
       biz_scope: String(payload.biz_scope ?? '').trim(),
-      biz_type: String(payload.biz_type ?? '').trim(),
     },
     fetchImpl: options.fetchImpl,
     base: options.base,

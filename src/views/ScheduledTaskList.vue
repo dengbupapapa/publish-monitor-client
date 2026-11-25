@@ -160,12 +160,11 @@ const columns = [
   { title: '编号', key: 'ordinal', width: 72 },
   { title: '名称', key: 'name', ellipsis: true },
   { title: '任务类型', key: 'job_type', width: 150, ellipsis: true },
-  { title: '平台', key: 'biz_scope', width: 120, ellipsis: true },
-  { title: '账号', key: 'biz_type', width: 120, ellipsis: true },
+  { title: '账号', key: 'biz_scope', width: 140, ellipsis: true },
   { title: 'cron 表达式', key: 'cron', width: 160, ellipsis: true },
   { title: '启用', key: 'enabled', width: 88 },
   { title: '上次触发', key: 'last_fired_at', width: 180 },
-  { title: '操作', key: 'actions', width: 130 },
+  { title: '操作', key: 'actions', width: 130, fixed: 'right' },
 ]
 
 // 序号按页码与条数派生，与任务编号无关；行标识仍由 row-key 取 record.id
@@ -357,11 +356,6 @@ const emptyDescription = computed(() => {
 
         <template v-else-if="column.key === 'biz_scope'">
           <span v-if="record.biz_scope" :title="record.biz_scope">{{ record.biz_scope }}</span>
-          <span v-else class="placeholder">—</span>
-        </template>
-
-        <template v-else-if="column.key === 'biz_type'">
-          <span v-if="record.biz_type" :title="record.biz_type">{{ record.biz_type }}</span>
           <span v-else class="placeholder">—</span>
         </template>
 
