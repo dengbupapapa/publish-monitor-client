@@ -79,7 +79,7 @@ test('validateForm 缺字段时报错，job_type 与 biz_scope 为必填', () =>
     job_type: '请选择任务类型',
   })
   assert.deepEqual(validateForm({ name: '任务', job_type: 'article_diff', cron: '* * *', biz_scope: '账号A' }), {
-    cron: '请输入合法的五段式 cron 表达式（分 时 日 月 周）',
+    cron: '请输入合法的任务规则（五段式：分 时 日 月 周）',
   })
   assert.deepEqual(validateForm({ name: '任务', job_type: '   ', cron: '0 8 * * *', biz_scope: '账号A' }), {
     job_type: '请选择任务类型',
@@ -93,7 +93,7 @@ test('validateForm 缺字段时报错，job_type 与 biz_scope 为必填', () =>
   assert.deepEqual(validateForm({}), {
     name: '请输入任务名称',
     job_type: '请选择任务类型',
-    cron: '请输入合法的五段式 cron 表达式（分 时 日 月 周）',
+    cron: '请输入合法的任务规则（五段式：分 时 日 月 周）',
     biz_scope: '请输入账号',
   })
 })
@@ -257,6 +257,10 @@ test('classifyScheduleError 按业务码归位字段', () => {
   assert.deepEqual(classifyScheduleError({ code: 40002, status: 400, message: 'cron 非法' }), {
     field: 'cron',
     message: 'cron 非法',
+  })
+  assert.deepEqual(classifyScheduleError({ code: 40002, status: 400 }), {
+    field: 'cron',
+    message: '请输入合法的任务规则',
   })
   assert.deepEqual(classifyScheduleError({ code: 40005, status: 400, message: '未知流程' }), {
     field: 'job_type',

@@ -140,7 +140,7 @@ defineExpose({ submit, applyServerError })
     </a-form-item>
 
     <a-form-item
-      label="cron 表达式"
+      label="任务规则"
       required
       :validate-status="errors.cron ? 'error' : ''"
       :help="errors.cron"

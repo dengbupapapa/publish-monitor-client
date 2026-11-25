@@ -1,12 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { describeCron, formatRunTime, nextRunTimes, PREVIEW_COUNT } from './cronText.js'
+import { describeCron, describeCronSafely, formatRunTime, nextRunTimes, PREVIEW_COUNT } from './cronText.js'
 import { isValidCron } from '../../api/scheduledTasks.js'
 
 test('describeCron 输出中文描述', () => {
   assert.equal(describeCron('*/5 * * * *'), '每隔 5 分钟')
   assert.ok(describeCron('0 8 * * *').includes('08:00'))
+})
+
+test('describeCronSafely 处理有效、无效与空表达式', () => {
+  assert.equal(describeCronSafely('*/5 * * * *'), '每隔 5 分钟')
+  assert.equal(describeCronSafely('not a cron'), 'not a cron')
+  assert.equal(describeCronSafely(''), '')
+  assert.equal(describeCronSafely(null), '')
 })
 
 test('nextRunTimes 默认返回 3 次升序时间', () => {

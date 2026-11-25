@@ -25,6 +25,22 @@ export function describeCron(expression) {
 }
 
 /**
+ * 安全地生成中文描述：无效表达式保留原文，空值返回空文本。
+ *
+ * @param {string|null|undefined} expression 五段式 cron 表达式
+ * @returns {string}
+ */
+export function describeCronSafely(expression) {
+  const raw = String(expression ?? '')
+  if (!raw.trim()) return ''
+  try {
+    return describeCron(raw.trim())
+  } catch {
+    return raw
+  }
+}
+
+/**
  * 接下来的若干次执行时间。
  *
  * @param {string} expression 五段式 cron 表达式

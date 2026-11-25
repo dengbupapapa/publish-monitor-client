@@ -113,7 +113,7 @@ export function validateForm(form = {}) {
   const errors = {}
   if (!normalizeName(form.name)) errors.name = '请输入任务名称'
   if (!String(form.job_type ?? '').trim()) errors.job_type = '请选择任务类型'
-  if (!isValidCron(form.cron)) errors.cron = '请输入合法的五段式 cron 表达式（分 时 日 月 周）'
+  if (!isValidCron(form.cron)) errors.cron = '请输入合法的任务规则（五段式：分 时 日 月 周）'
   if (!String(form.biz_scope ?? '').trim()) errors.biz_scope = '请输入账号'
   return errors
 }
@@ -282,7 +282,7 @@ export function classifyScheduleError(error = {}) {
   const message = error?.message || ''
 
   if (code === SCHEDULE_ERROR_CODE.INVALID_CRON) {
-    return { field: 'cron', message: message || '请输入合法的五段式 cron 表达式' }
+    return { field: 'cron', message: message || '请输入合法的任务规则' }
   }
   if (code === SCHEDULE_ERROR_CODE.UNKNOWN_JOB_TYPE) {
     return { field: 'job_type', message: message || '任务类型不受支持' }

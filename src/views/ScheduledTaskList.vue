@@ -12,6 +12,7 @@ import {
   setScheduledTaskEnabled,
   updateScheduledTask,
 } from '@/api/scheduledTasks'
+import { describeCronSafely } from '@/components/cron/cronText'
 import ScheduledTaskForm from '@/components/schedule/ScheduledTaskForm.vue'
 
 const route = useRoute()
@@ -161,7 +162,7 @@ const columns = [
   { title: '名称', key: 'name', ellipsis: true },
   { title: '任务类型', key: 'job_type', width: 150, ellipsis: true },
   { title: '账号', key: 'biz_scope', width: 140, ellipsis: true },
-  { title: 'cron 表达式', key: 'cron', width: 160, ellipsis: true },
+  { title: '任务规则', key: 'cron', width: 220, ellipsis: true },
   { title: '启用', key: 'enabled', width: 88 },
   { title: '上次触发', key: 'last_fired_at', width: 180 },
   { title: '操作', key: 'actions', width: 130, fixed: 'right' },
@@ -171,10 +172,18 @@ const columns = [
 const rows = computed(() =>
   errorMessage.value
     ? []
-    : pageData.value.rows.map((record, index) => ({
-        ...record,
-        ordinal: (pageData.value.page - 1) * pageData.value.size + index + 1,
-      })),
+    : pageData.value.rows.map((record, index) => {
+        const cronDescription = describeCronSafely(record.cron)
+        return {
+          ...record,
+          ordinal: (pageData.value.page - 1) * pageData.value.size + index + 1,
+          cronDescription,
+          cronTitle:
+            cronDescription && cronDescription !== record.cron
+              ? `${cronDescription}\n${record.cron}`
+              : record.cron || '',
+        }
+      }),
 )
 
 const pagination = computed(() => ({
@@ -360,7 +369,8 @@ const emptyDescription = computed(() => {
         </template>
 
         <template v-else-if="column.key === 'cron'">
-          <span class="mono" :title="record.cron">{{ record.cron }}</span>
+          <span v-if="record.cronDescription" :title="record.cronTitle">{{ record.cronDescription }}</span>
+          <span v-else class="placeholder">—</span>
         </template>
 
         <template v-else-if="column.key === 'enabled'">

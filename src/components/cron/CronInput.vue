@@ -24,7 +24,7 @@ const valid = computed(() => isValidCron(expression.value))
 // 空值是「还没选择」，只给提示不算错；有值但解析不了才算校验失败
 const errorMessage = computed(() => {
   if (!expression.value || valid.value) return ''
-  return '请通过点选器生成合法的五段式 cron 表达式（分 时 日 月 周）'
+  return '请通过点选器生成合法的任务规则（五段式：分 时 日 月 周）'
 })
 
 // 解析失败时预览依赖会抛错，用计算属性前置条件短路
