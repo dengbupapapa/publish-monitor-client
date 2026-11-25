@@ -66,28 +66,35 @@ test('isValidCron 拒绝非五段式与非法取值', () => {
   }
 })
 
-test('validateForm 缺字段时报错，job_type 为必填', () => {
+test('validateForm 缺字段时报错，job_type 与 biz_scope 为必填', () => {
   assert.deepEqual(
-    validateForm({ name: '任务', job_type: 'article_diff', cron: '0 8 * * *' }),
+    validateForm({ name: '任务', job_type: 'article_diff', cron: '0 8 * * *', biz_scope: '账号A' }),
     {},
   )
 
-  assert.deepEqual(validateForm({ job_type: 'article_diff', cron: '0 8 * * *' }), {
+  assert.deepEqual(validateForm({ job_type: 'article_diff', cron: '0 8 * * *', biz_scope: '账号A' }), {
     name: '请输入任务名称',
   })
-  assert.deepEqual(validateForm({ name: '任务', cron: '0 8 * * *' }), {
+  assert.deepEqual(validateForm({ name: '任务', cron: '0 8 * * *', biz_scope: '账号A' }), {
     job_type: '请选择任务类型',
   })
-  assert.deepEqual(validateForm({ name: '任务', job_type: 'article_diff', cron: '* * *' }), {
+  assert.deepEqual(validateForm({ name: '任务', job_type: 'article_diff', cron: '* * *', biz_scope: '账号A' }), {
     cron: '请输入合法的五段式 cron 表达式（分 时 日 月 周）',
   })
-  assert.deepEqual(validateForm({ name: '任务', job_type: '   ', cron: '0 8 * * *' }), {
+  assert.deepEqual(validateForm({ name: '任务', job_type: '   ', cron: '0 8 * * *', biz_scope: '账号A' }), {
     job_type: '请选择任务类型',
+  })
+  assert.deepEqual(validateForm({ name: '任务', job_type: 'article_diff', cron: '0 8 * * *' }), {
+    biz_scope: '请输入账号',
+  })
+  assert.deepEqual(validateForm({ name: '任务', job_type: 'article_diff', cron: '0 8 * * *', biz_scope: '   ' }), {
+    biz_scope: '请输入账号',
   })
   assert.deepEqual(validateForm({}), {
     name: '请输入任务名称',
     job_type: '请选择任务类型',
     cron: '请输入合法的五段式 cron 表达式（分 时 日 月 周）',
+    biz_scope: '请输入账号',
   })
 })
 

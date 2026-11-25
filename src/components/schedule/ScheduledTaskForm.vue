@@ -21,7 +21,7 @@ const form = reactive({
   biz_scope: '',
 })
 
-const errors = reactive({ name: '', job_type: '', cron: '' })
+const errors = reactive({ name: '', job_type: '', cron: '', biz_scope: '' })
 const formError = ref('')
 
 const jobTypeOptions = computed(() =>
@@ -48,11 +48,12 @@ onMounted(initFromProps)
 
 // 字段一改就清掉旧错误：不能让使用者修好了还一直看着红字
 watch(
-  () => [form.name, form.job_type, form.cron],
+  () => [form.name, form.job_type, form.cron, form.biz_scope],
   () => {
     errors.name = ''
     errors.job_type = ''
     errors.cron = ''
+    errors.biz_scope = ''
     formError.value = ''
   },
 )
@@ -62,6 +63,7 @@ function submit() {
   errors.name = result.name || ''
   errors.job_type = result.job_type || ''
   errors.cron = result.cron || ''
+  errors.biz_scope = result.biz_scope || ''
   formError.value = ''
   if (Object.keys(result).length > 0) return
 
@@ -78,10 +80,12 @@ function applyServerError(error) {
   errors.name = ''
   errors.job_type = ''
   errors.cron = ''
+  errors.biz_scope = ''
   formError.value = ''
   if (field === 'name') errors.name = message
   else if (field === 'job_type') errors.job_type = message
   else if (field === 'cron') errors.cron = message
+  else if (field === 'biz_scope') errors.biz_scope = message
   else formError.value = message
 }
 
@@ -121,12 +125,17 @@ defineExpose({ submit, applyServerError })
       />
     </a-form-item>
 
-    <a-form-item label="账号">
+    <a-form-item
+      label="账号"
+      required
+      :validate-status="errors.biz_scope ? 'error' : ''"
+      :help="errors.biz_scope"
+    >
       <a-input
         v-model:value="form.biz_scope"
         :maxlength="128"
         :disabled="submitting"
-        placeholder="账号标识（可留空）"
+        placeholder="请输入账号"
       />
     </a-form-item>
 

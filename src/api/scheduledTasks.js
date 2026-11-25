@@ -103,17 +103,18 @@ function isValidCronField(field, position) {
 /**
  * 表单校验：返回字段级错误映射，空对象表示通过。
  *
- * `job_type` 由后端改为创建/编辑必填，这里同步拦截空值。`biz_scope` /
- * `biz_type` 为可选，`biz_name` / `params` 不在界面暴露、不参与校验。
+ * `job_type` / `biz_scope` 由后端改为创建/编辑必填，这里同步拦截空值。
+ * `biz_type` 不在界面暴露、不参与校验；`biz_name` / `params` 同上。
  *
- * @param {{name?: string, job_type?: string, cron?: string}} form
- * @returns {{name?: string, job_type?: string, cron?: string}}
+ * @param {{name?: string, job_type?: string, cron?: string, biz_scope?: string}} form
+ * @returns {{name?: string, job_type?: string, cron?: string, biz_scope?: string}}
  */
 export function validateForm(form = {}) {
   const errors = {}
   if (!normalizeName(form.name)) errors.name = '请输入任务名称'
   if (!String(form.job_type ?? '').trim()) errors.job_type = '请选择任务类型'
   if (!isValidCron(form.cron)) errors.cron = '请输入合法的五段式 cron 表达式（分 时 日 月 周）'
+  if (!String(form.biz_scope ?? '').trim()) errors.biz_scope = '请输入账号'
   return errors
 }
 
