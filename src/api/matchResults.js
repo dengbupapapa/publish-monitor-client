@@ -22,6 +22,12 @@ export const WARN_SCOPE = 'warn'
 /** 后端对关键词的硬上限（`keyword` 的 `max_length`）。 */
 export const KEYWORD_MAX_LENGTH = 128
 
+/** 后端对任务类型的硬上限（`job_type` 的 `max_length`）。 */
+export const JOB_TYPE_MAX_LENGTH = 32
+
+/** 后端对账号名称的硬上限（`biz_scope` 的 `max_length`）。 */
+export const BIZ_SCOPE_MAX_LENGTH = 128
+
 /**
  * 关键词归一化：去首尾空白并按上限截断，空串表示「没有关键词」。
  *
@@ -34,6 +40,40 @@ export const KEYWORD_MAX_LENGTH = 128
 export function normalizeKeyword(value) {
   if (value === null || value === undefined) return ''
   return String(value).trim().slice(0, KEYWORD_MAX_LENGTH)
+}
+
+/**
+ * 运行维度取值归一化：去首尾空白并按上限截断，空串表示「全部」。
+ *
+ * 与关键词同理，地址可能绕过下拉，超长取值必须在请求前截断。
+ *
+ * @param {unknown} value
+ * @param {number} maxLength
+ * @returns {string}
+ */
+export function normalizeDimension(value, maxLength) {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().slice(0, maxLength)
+}
+
+/**
+ * 任务类型归一化。
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeJobType(value) {
+  return normalizeDimension(value, JOB_TYPE_MAX_LENGTH)
+}
+
+/**
+ * 账号名称归一化。
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeBizScope(value) {
+  return normalizeDimension(value, BIZ_SCOPE_MAX_LENGTH)
 }
 
 /**
@@ -52,8 +92,9 @@ export function pageToPageNum(page) {
  *
  * `scope` 只在取值为 `warn` 时发送，其余取值一律不带，避免把默认集合写进地址。
  * `keyword` 归一化后为空就不带，长度在这里再截断一次作为最后一道保险。
+ * `job_type` / `biz_scope` 同理：归一化后为空表示「全部」，不带参数。
  *
- * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null}} [params]
+ * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null, jobType?:string|null, bizScope?:string|null}} [params]
  * @returns {string}
  */
 export function buildListQuery(params = {}) {
@@ -78,13 +119,23 @@ export function buildListQuery(params = {}) {
     search.set('keyword', keyword)
   }
 
+  const jobType = normalizeJobType(params.jobType)
+  if (jobType) {
+    search.set('job_type', jobType)
+  }
+
+  const bizScope = normalizeBizScope(params.bizScope)
+  if (bizScope) {
+    search.set('biz_scope', bizScope)
+  }
+
   return search.toString()
 }
 
 /**
  * 拉取结论列表。页码从 1 开始，请求时换算成后端从 0 起的 `pageNum`。
  *
- * @param {{page?:number, size?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null, signal?:AbortSignal}} [params]
+ * @param {{page?:number, size?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null, jobType?:string|null, bizScope?:string|null, signal?:AbortSignal}} [params]
  * @returns {Promise<{total:number, rows:Array}>}
  */
 export function listMatchResults(params = {}) {
@@ -94,8 +145,40 @@ export function listMatchResults(params = {}) {
     matched: params.matched,
     scope: params.scope,
     keyword: params.keyword,
+    jobType: params.jobType,
+    bizScope: params.bizScope,
   })
   return request(`/match-results?${query}`, { signal: params.signal })
+}
+
+/**
+ * 拉取运行记录里出现过的任务类型选项。
+ *
+ * 与流程注册表字典不同，这里包含已下线但仍有结论的历史类型；`label` 由服务端
+ * 取最新流程名，缺失时回落类型标识。
+ *
+ * @param {{signal?:AbortSignal}} [options]
+ * @returns {Promise<Array<{value:string, label:string}>>}
+ */
+export async function listRunJobTypes(options = {}) {
+  const data = await request('/diff-run-options/job-types', { signal: options.signal })
+  return Array.isArray(data) ? data : []
+}
+
+/**
+ * 拉取运行记录里出现过的账号选项，可按任务类型收窄。
+ *
+ * `jobType` 为空表示不级联；选项的 `value` 是业务编号，筛选值应使用 `label`。
+ *
+ * @param {string|null} [jobType]
+ * @param {{signal?:AbortSignal}} [options]
+ * @returns {Promise<Array<{value:string, label:string}>>}
+ */
+export async function listRunBizScopeOptions(jobType, options = {}) {
+  const term = normalizeJobType(jobType)
+  const suffix = term ? `?${new URLSearchParams({ job_type: term }).toString()}` : ''
+  const data = await request(`/diff-run-options/biz-scopes${suffix}`, { signal: options.signal })
+  return Array.isArray(data) ? data : []
 }
 
 /**
