@@ -6,7 +6,7 @@
  * 归一后透出，表单直接展示。
  */
 
-import { request } from './http.js'
+import { http, NotFoundError } from './http.js'
 
 /** 后端对 `name` 的硬上限（`String(255)`）。 */
 export const NAME_MAX_LENGTH = 255
@@ -148,43 +148,41 @@ export function pageToPageNum(page) {
 }
 
 /**
- * 拼装列表查询串；`job_type` 为空表示「全部」，不带这个参数。
+ * 拼装列表查询参数；序列化交给 axios。
+ *
+ * `job_type` 为空表示「全部」，不带这个参数（空串必须显式省略：axios 只丢
+ * `null` / `undefined`）。
  *
  * @param {{pageNum?:number, pageSize?:number, jobType?:string|null}} [params]
- * @returns {string}
+ * @returns {{pageNum:number, pageSize:number, job_type?:string}}
  */
-export function buildListQuery(params = {}) {
+export function buildListParams(params = {}) {
   const pageNum = Math.max(0, Math.floor(Number(params.pageNum) || 0))
   const pageSize = Math.min(
     MAX_LIMIT,
     Math.max(1, Math.floor(Number(params.pageSize) || DEFAULT_LIMIT)),
   )
-  const search = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) })
+  const query = { pageNum, pageSize }
 
   const jobType = typeof params.jobType === 'string' ? params.jobType.trim() : ''
-  if (jobType) search.set('job_type', jobType)
+  if (jobType) query.job_type = jobType
 
-  return search.toString()
+  return query
 }
 
 /**
  * 拉取定时任务分页数据。
  *
- * @param {{page?:number, size?:number, jobType?:string, signal?:AbortSignal,
- *          fetchImpl?:Function, base?:string}} [params]
+ * @param {{page?:number, size?:number, jobType?:string, signal?:AbortSignal}} [params]
  * @returns {Promise<{total:number, rows:Array}>}
  */
 export async function listScheduledTasks(params = {}) {
-  const query = buildListQuery({
+  const query = buildListParams({
     pageNum: pageToPageNum(params.page),
     pageSize: params.size,
     jobType: params.jobType,
   })
-  const data = await request(`/diff-schedules?${query}`, {
-    fetchImpl: params.fetchImpl,
-    base: params.base,
-    signal: params.signal,
-  })
+  const data = await http.get('/diff-schedules', { params: query, signal: params.signal })
   return {
     total: Number(data?.total) || 0,
     rows: Array.isArray(data?.rows) ? data.rows : [],
@@ -194,15 +192,11 @@ export async function listScheduledTasks(params = {}) {
 /**
  * 拉取流程类型字典（`value` 判定、`label` 展示）。
  *
- * @param {{signal?:AbortSignal, fetchImpl?:Function, base?:string}} [options]
+ * @param {{signal?:AbortSignal}} [options]
  * @returns {Promise<Array<{value:string, label:string}>>}
  */
 export async function listJobTypes(options = {}) {
-  const data = await request('/job-types', {
-    fetchImpl: options.fetchImpl,
-    base: options.base,
-    signal: options.signal,
-  })
+  const data = await http.get('/job-types', { signal: options.signal })
   return Array.isArray(data) ? data : []
 }
 
@@ -214,18 +208,16 @@ export async function listJobTypes(options = {}) {
  * @returns {Promise<any>}
  */
 export function createScheduledTask(payload, options = {}) {
-  return request('/diff-schedules', {
-    method: 'POST',
-    body: {
+  return http.post(
+    '/diff-schedules',
+    {
       name: normalizeName(payload.name),
       job_type: String(payload.job_type || '').trim(),
       cron: String(payload.cron || '').trim(),
       biz_scope: String(payload.biz_scope ?? '').trim(),
     },
-    fetchImpl: options.fetchImpl,
-    base: options.base,
-    signal: options.signal,
-  })
+    { signal: options.signal },
+  )
 }
 
 /**
@@ -250,13 +242,7 @@ export function updateScheduledTask(id, patch = {}, options = {}) {
   if (provided('biz_type')) body.biz_type = String(patch.biz_type ?? '').trim()
   if (provided('enabled')) body.enabled = Boolean(patch.enabled)
 
-  return request(`/diff-schedules/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    body,
-    fetchImpl: options.fetchImpl,
-    base: options.base,
-    signal: options.signal,
-  })
+  return http.patch(`/diff-schedules/${encodeURIComponent(id)}`, body, { signal: options.signal })
 }
 
 /** 后端相关业务码（见 `exceptions.py`）。 */
@@ -312,28 +298,29 @@ export function classifyScheduleError(error = {}) {
  * @returns {Promise<any>}
  */
 export function setScheduledTaskEnabled(id, enabled, options = {}) {
-  return request(`/diff-schedules/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    body: { enabled: Boolean(enabled) },
-    fetchImpl: options.fetchImpl,
-    base: options.base,
-    signal: options.signal,
-  })
+  return http.patch(
+    `/diff-schedules/${encodeURIComponent(id)}`,
+    { enabled: Boolean(enabled) },
+    { signal: options.signal },
+  )
 }
 
 /**
  * 删除定时任务。
  *
+ * 删除的 404 比通用文案更容易理解，因此在归一后的 `NotFoundError` 上换个文案。
+ *
  * @param {number|string} id 任务编号
- * @param {{signal?: AbortSignal, notFoundMessage?: string}} [options]
+ * @param {{signal?: AbortSignal}} [options]
  * @returns {Promise<any>}
  */
-export function deleteScheduledTask(id, options = {}) {
-  return request(`/diff-schedules/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-    notFoundMessage: '任务不存在或已被删除',
-    fetchImpl: options.fetchImpl,
-    base: options.base,
-    signal: options.signal,
-  })
+export async function deleteScheduledTask(id, options = {}) {
+  try {
+    return await http.delete(`/diff-schedules/${encodeURIComponent(id)}`, { signal: options.signal })
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new NotFoundError('任务不存在或已被删除', { code: error.code })
+    }
+    throw error
+  }
 }

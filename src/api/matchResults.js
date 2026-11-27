@@ -4,7 +4,7 @@
  * 两个端点都只读：列表按服务端分页与过滤，详情按结论编号取五键结构。
  */
 
-import { request } from './http.js'
+import { http } from './http.js'
 
 /** 后端对 `pageSize` 的硬上限（`MAX_MATCH_RESULT_LIMIT`）。 */
 export const MAX_LIMIT = 200
@@ -88,48 +88,51 @@ export function pageToPageNum(page) {
 }
 
 /**
- * 拼装列表查询串；`matched` 为空表示「全部」，不带这个参数。
+ * 拼装列表查询参数；序列化交给 axios。
  *
+ * `matched` 为空表示「全部」，不带这个参数。
  * `scope` 只在取值为 `warn` 时发送，其余取值一律不带，避免把默认集合写进地址。
  * `keyword` 归一化后为空就不带，长度在这里再截断一次作为最后一道保险。
  * `job_type` / `biz_scope` 同理：归一化后为空表示「全部」，不带参数。
  *
+ * 空值必须显式省略：axios 的默认序列化只丢弃 `null` / `undefined`，空串会被发出去。
+ *
  * @param {{pageNum?:number, pageSize?:number, matched?:number|string|null, scope?:string|null, keyword?:string|null, jobType?:string|null, bizScope?:string|null}} [params]
- * @returns {string}
+ * @returns {{pageNum:number, pageSize:number, matched?:string|number, scope?:string, keyword?:string, job_type?:string, biz_scope?:string}}
  */
-export function buildListQuery(params = {}) {
+export function buildListParams(params = {}) {
   const pageNum = Math.max(0, Math.floor(Number(params.pageNum) || 0))
   const pageSize = Math.min(
     MAX_LIMIT,
     Math.max(1, Math.floor(Number(params.pageSize) || DEFAULT_LIMIT)),
   )
-  const search = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) })
+  const query = { pageNum, pageSize }
 
   const matched = params.matched
   if (matched !== null && matched !== undefined && matched !== '') {
-    search.set('matched', String(matched))
+    query.matched = matched
   }
 
   if (params.scope === WARN_SCOPE) {
-    search.set('scope', WARN_SCOPE)
+    query.scope = WARN_SCOPE
   }
 
   const keyword = normalizeKeyword(params.keyword)
   if (keyword) {
-    search.set('keyword', keyword)
+    query.keyword = keyword
   }
 
   const jobType = normalizeJobType(params.jobType)
   if (jobType) {
-    search.set('job_type', jobType)
+    query.job_type = jobType
   }
 
   const bizScope = normalizeBizScope(params.bizScope)
   if (bizScope) {
-    search.set('biz_scope', bizScope)
+    query.biz_scope = bizScope
   }
 
-  return search.toString()
+  return query
 }
 
 /**
@@ -139,7 +142,7 @@ export function buildListQuery(params = {}) {
  * @returns {Promise<{total:number, rows:Array}>}
  */
 export function listMatchResults(params = {}) {
-  const query = buildListQuery({
+  const query = buildListParams({
     pageNum: pageToPageNum(params.page),
     pageSize: params.size,
     matched: params.matched,
@@ -148,7 +151,7 @@ export function listMatchResults(params = {}) {
     jobType: params.jobType,
     bizScope: params.bizScope,
   })
-  return request(`/match-results?${query}`, { signal: params.signal })
+  return http.get('/match-results', { params: query, signal: params.signal })
 }
 
 /**
@@ -161,7 +164,7 @@ export function listMatchResults(params = {}) {
  * @returns {Promise<Array<{value:string, label:string}>>}
  */
 export async function listRunJobTypes(options = {}) {
-  const data = await request('/diff-run-options/job-types', { signal: options.signal })
+  const data = await http.get('/diff-run-options/job-types', { signal: options.signal })
   return Array.isArray(data) ? data : []
 }
 
@@ -176,8 +179,10 @@ export async function listRunJobTypes(options = {}) {
  */
 export async function listRunBizScopeOptions(jobType, options = {}) {
   const term = normalizeJobType(jobType)
-  const suffix = term ? `?${new URLSearchParams({ job_type: term }).toString()}` : ''
-  const data = await request(`/diff-run-options/biz-scopes${suffix}`, { signal: options.signal })
+  const data = await http.get('/diff-run-options/biz-scopes', {
+    params: term ? { job_type: term } : undefined,
+    signal: options.signal,
+  })
   return Array.isArray(data) ? data : []
 }
 
@@ -189,5 +194,5 @@ export async function listRunBizScopeOptions(jobType, options = {}) {
  * @returns {Promise<{article:object, records:Array, ranges:Array, alignment:Array, objects:Array}>}
  */
 export function getMatchResultPreview(id, options = {}) {
-  return request(`/match-results/${encodeURIComponent(id)}/preview`, { signal: options.signal })
+  return http.get(`/match-results/${encodeURIComponent(id)}/preview`, { signal: options.signal })
 }

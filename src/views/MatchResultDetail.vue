@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { isAbort } from '@/api/http'
 import { getMatchResultPreview } from '@/api/matchResults'
 import DiffWorkspace from '@/components/diff/DiffWorkspace.vue'
 import { buildRecordViews, collectSpans } from '@/diff/records'
@@ -36,7 +37,7 @@ async function load() {
   try {
     payload.value = await getMatchResultPreview(props.id, { signal: controller.signal })
   } catch (error) {
-    if (token !== seq || error.name === 'AbortError') return
+    if (token !== seq || isAbort(error)) return
     // 404 表示这条结论没有可渲染的差异明细，和请求失败要分开呈现
     if (error.name === 'NotFoundError') notFound.value = true
     else errorMessage.value = error.message || '加载失败'

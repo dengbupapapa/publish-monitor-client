@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import test, { afterEach } from 'node:test'
 
+import { AxiosError } from 'axios'
+
+import { http, NotFoundError } from './http.js'
 import {
-  buildListQuery,
+  buildListParams,
   buildSchedulePayload,
   classifyScheduleError,
   createScheduledTask,
@@ -123,100 +126,108 @@ test('pageToPageNum 从 1 起换算成 0 起并夹紧非法值', () => {
   assert.equal(pageToPageNum(undefined), 0)
 })
 
-test('buildListQuery 缺省不带 job_type、夹紧条数上限', () => {
-  assert.equal(buildListQuery({}), `pageNum=0&pageSize=${DEFAULT_LIMIT}`)
-  assert.equal(
-    buildListQuery({ pageNum: 2, pageSize: 10, jobType: 'article_diff' }),
-    'pageNum=2&pageSize=10&job_type=article_diff',
-  )
-  assert.equal(buildListQuery({ jobType: '   ' }), `pageNum=0&pageSize=${DEFAULT_LIMIT}`)
-  assert.equal(
-    buildListQuery({ pageSize: MAX_LIMIT + 50 }),
-    `pageNum=0&pageSize=${MAX_LIMIT}`,
-  )
+test('buildListParams 缺省不带 job_type、夹紧条数上限', () => {
+  assert.deepEqual(buildListParams({}), { pageNum: 0, pageSize: DEFAULT_LIMIT })
+  assert.deepEqual(buildListParams({ pageNum: 2, pageSize: 10, jobType: 'article_diff' }), {
+    pageNum: 2,
+    pageSize: 10,
+    job_type: 'article_diff',
+  })
+  assert.deepEqual(buildListParams({ jobType: '   ' }), { pageNum: 0, pageSize: DEFAULT_LIMIT })
+  assert.deepEqual(buildListParams({ pageSize: MAX_LIMIT + 50 }), {
+    pageNum: 0,
+    pageSize: MAX_LIMIT,
+  })
 })
 
-/** 造一个只回一个响应并记录调用的假 fetch。 */
-const recordingFetch = (payload) => {
+/** 记录请求的假适配器：把 axios 最终交给传输层的 config 收起来，统一回 `{code:200}` 信封。 */
+const recording = (payload) => {
   const calls = []
-  const impl = async (url, options) => {
-    calls.push({ url, options })
-    return {
-      ok: true,
-      status: 200,
-      json: async () => payload,
-    }
+  const adapter = async (config) => {
+    calls.push(config)
+    return { data: { code: 200, msg: 'success', data: payload }, status: 200, statusText: 'OK', headers: {}, config }
   }
-  impl.calls = calls
-  return impl
+  adapter.calls = calls
+  return adapter
+}
+
+let restore = null
+
+/** 替换单例适配器，`afterEach` 负责还原，避免用例顺序耦合。 */
+const use = (adapter) => {
+  const previous = http.defaults.adapter
+  http.defaults.adapter = adapter
+  restore = () => {
+    http.defaults.adapter = previous
+  }
+}
+
+afterEach(() => {
+  restore?.()
+  restore = null
+})
+
+const header = (config, name) => {
+  const value = config.headers?.get ? config.headers.get(name) : config.headers?.[name]
+  return value === undefined || value === null ? undefined : String(value)
 }
 
 test('listScheduledTasks 分页取数并解析 {total, rows}', async () => {
-  const fetchImpl = recordingFetch({
-    code: 200,
-    msg: 'success',
-    data: {
-      pageNum: 0,
-      pageSize: 10,
-      total: 1,
-      rows: [{ id: 1, name: '每日比对', job_type: 'article_diff', cron: '0 8 * * *', enabled: true, last_fired_at: null }],
-    },
+  const adapter = recording({
+    pageNum: 0,
+    pageSize: 10,
+    total: 1,
+    rows: [{ id: 1, name: '每日比对', job_type: 'article_diff', cron: '0 8 * * *', enabled: true, last_fired_at: null }],
   })
+  use(adapter)
 
-  const page = await listScheduledTasks({ page: 1, size: 10, jobType: 'article_diff', fetchImpl, base: '/api' })
+  const page = await listScheduledTasks({ page: 1, size: 10, jobType: 'article_diff' })
   assert.equal(page.total, 1)
   assert.equal(page.rows.length, 1)
   assert.equal(page.rows[0].name, '每日比对')
 
-  const call = fetchImpl.calls[0]
-  assert.equal(call.url, '/api/diff-schedules?pageNum=0&pageSize=10&job_type=article_diff')
-  assert.equal(call.options.method, 'GET')
-  assert.equal(call.options.body, undefined)
+  const call = adapter.calls[0]
+  assert.equal(call.url, '/diff-schedules')
+  assert.equal(call.method, 'get')
+  assert.deepEqual(call.params, { pageNum: 0, pageSize: 10, job_type: 'article_diff' })
+  assert.equal(call.data, undefined)
 })
 
 test('listScheduledTasks 缺省参数时不带 job_type', async () => {
-  const fetchImpl = recordingFetch({ code: 200, msg: 'success', data: { total: 0, rows: [] } })
+  const adapter = recording({ total: 0, rows: [] })
+  use(adapter)
 
-  await listScheduledTasks({ fetchImpl, base: '/api' })
+  await listScheduledTasks({})
 
-  assert.equal(fetchImpl.calls[0].url, `/api/diff-schedules?pageNum=0&pageSize=${DEFAULT_LIMIT}`)
+  assert.deepEqual(adapter.calls[0].params, { pageNum: 0, pageSize: DEFAULT_LIMIT })
 })
 
 test('listJobTypes 请求 GET /job-types 并返回数组', async () => {
-  const fetchImpl = recordingFetch({
-    code: 200,
-    msg: 'success',
-    data: [{ value: 'article_diff', label: '微信公众号文章对比' }],
-  })
+  const adapter = recording([{ value: 'article_diff', label: '微信公众号文章对比' }])
+  use(adapter)
 
-  const types = await listJobTypes({ fetchImpl, base: '/api' })
+  const types = await listJobTypes()
   assert.deepEqual(types, [{ value: 'article_diff', label: '微信公众号文章对比' }])
-  assert.equal(fetchImpl.calls[0].url, '/api/job-types')
-  assert.equal(fetchImpl.calls[0].options.method, 'GET')
+  assert.equal(adapter.calls[0].url, '/job-types')
+  assert.equal(adapter.calls[0].method, 'get')
 })
 
 test('createScheduledTask POST 归一化后的字段（含 job_type 与 biz_scope）', async () => {
-  const fetchImpl = recordingFetch({
-    code: 200,
-    msg: 'success',
-    data: { id: 2, name: '每日比对', job_type: 'article_diff', cron: '0 8 * * *', enabled: true, last_fired_at: null },
+  const adapter = recording({ id: 2, name: '每日比对' })
+  use(adapter)
+
+  await createScheduledTask({
+    name: '  每日比对  ',
+    job_type: ' article_diff ',
+    cron: ' 0 8 * * * ',
+    biz_scope: ' 公众号 ',
   })
 
-  await createScheduledTask(
-    {
-      name: '  每日比对  ',
-      job_type: ' article_diff ',
-      cron: ' 0 8 * * * ',
-      biz_scope: ' 公众号 ',
-    },
-    { fetchImpl, base: '/api' },
-  )
-
-  const call = fetchImpl.calls[0]
-  assert.equal(call.url, '/api/diff-schedules')
-  assert.equal(call.options.method, 'POST')
-  assert.equal(call.options.headers['Content-Type'], 'application/json')
-  assert.deepEqual(JSON.parse(call.options.body), {
+  const call = adapter.calls[0]
+  assert.equal(call.url, '/diff-schedules')
+  assert.equal(call.method, 'post')
+  assert.match(header(call, 'Content-Type'), /application\/json/)
+  assert.deepEqual(JSON.parse(call.data), {
     name: '每日比对',
     job_type: 'article_diff',
     cron: '0 8 * * *',
@@ -225,18 +236,21 @@ test('createScheduledTask POST 归一化后的字段（含 job_type 与 biz_scop
 })
 
 test('updateScheduledTask PATCH 只发送提供的字段，空串清空业务名称', async () => {
-  const fetchImpl = recordingFetch({ code: 200, msg: 'success', data: null })
+  const adapter = recording(null)
+  use(adapter)
 
-  await updateScheduledTask(
-    9,
-    { name: '  改名 ', job_type: 'article_diff', cron: ' */5 * * * * ', biz_scope: '', biz_type: ' 品牌B ' },
-    { fetchImpl, base: '/api' },
-  )
+  await updateScheduledTask(9, {
+    name: '  改名 ',
+    job_type: 'article_diff',
+    cron: ' */5 * * * * ',
+    biz_scope: '',
+    biz_type: ' 品牌B ',
+  })
 
-  const call = fetchImpl.calls[0]
-  assert.equal(call.url, '/api/diff-schedules/9')
-  assert.equal(call.options.method, 'PATCH')
-  assert.deepEqual(JSON.parse(call.options.body), {
+  const call = adapter.calls[0]
+  assert.equal(call.url, '/diff-schedules/9')
+  assert.equal(call.method, 'patch')
+  assert.deepEqual(JSON.parse(call.data), {
     name: '改名',
     job_type: 'article_diff',
     cron: '*/5 * * * *',
@@ -246,11 +260,12 @@ test('updateScheduledTask PATCH 只发送提供的字段，空串清空业务名
 })
 
 test('updateScheduledTask 不含未提供的字段（不发 biz_name/params）', async () => {
-  const fetchImpl = recordingFetch({ code: 200, msg: 'success', data: null })
+  const adapter = recording(null)
+  use(adapter)
 
-  await updateScheduledTask(9, { enabled: false }, { fetchImpl, base: '/api' })
+  await updateScheduledTask(9, { enabled: false })
 
-  assert.deepEqual(JSON.parse(fetchImpl.calls[0].options.body), { enabled: false })
+  assert.deepEqual(JSON.parse(adapter.calls[0].data), { enabled: false })
 })
 
 test('classifyScheduleError 按业务码归位字段', () => {
@@ -283,34 +298,55 @@ test('classifyScheduleError 按业务码归位字段', () => {
 })
 
 test('setScheduledTaskEnabled PATCH 布尔启停', async () => {
-  const fetchImpl = recordingFetch({ code: 200, msg: 'success', data: null })
+  const adapter = recording(null)
+  use(adapter)
 
-  await setScheduledTaskEnabled(7, true, { fetchImpl, base: '/api' })
+  await setScheduledTaskEnabled(7, true)
 
-  const call = fetchImpl.calls[0]
-  assert.equal(call.url, '/api/diff-schedules/7')
-  assert.equal(call.options.method, 'PATCH')
-  assert.deepEqual(JSON.parse(call.options.body), { enabled: true })
+  const call = adapter.calls[0]
+  assert.equal(call.url, '/diff-schedules/7')
+  assert.equal(call.method, 'patch')
+  assert.deepEqual(JSON.parse(call.data), { enabled: true })
 })
 
 test('deleteScheduledTask DELETE 走任务详情路径', async () => {
-  const calls = []
-  const originalFetch = globalThis.fetch
-  globalThis.fetch = async (url, options) => {
-    calls.push({ url, options })
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ code: 200, msg: 'success', data: null }),
-    }
-  }
+  const adapter = recording(null)
+  use(adapter)
 
-  try {
-    await deleteScheduledTask(3)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+  await deleteScheduledTask(3)
 
-  assert.equal(calls[0].url, '/api/diff-schedules/3')
-  assert.equal(calls[0].options.method, 'DELETE')
+  assert.equal(adapter.calls[0].url, '/diff-schedules/3')
+  assert.equal(adapter.calls[0].method, 'delete')
+})
+
+test('deleteScheduledTask 把 404 换成删除专用文案', async () => {
+  use(async (config) => {
+    const response = { data: { code: 404, msg: 'not found' }, status: 404, statusText: 'ERR', headers: {}, config }
+    throw new AxiosError('Request failed with status code 404', 'ERR_BAD_RESPONSE', config, null, response)
+  })
+
+  await assert.rejects(
+    () => deleteScheduledTask(3),
+    (error) => {
+      assert.ok(error instanceof NotFoundError)
+      assert.equal(error.message, '任务不存在或已被删除')
+      return true
+    },
+  )
+})
+
+test('deleteScheduledTask 其它失败保留原始文案', async () => {
+  use(async (config) => {
+    const response = { data: { code: 500, msg: '数据库操作失败，请稍后重试' }, status: 500, statusText: 'ERR', headers: {}, config }
+    throw new AxiosError('Request failed with status code 500', 'ERR_BAD_RESPONSE', config, null, response)
+  })
+
+  await assert.rejects(
+    () => deleteScheduledTask(3),
+    (error) => {
+      assert.equal(error.message, '数据库操作失败，请稍后重试')
+      assert.equal(error.code, 500)
+      return true
+    },
+  )
 })

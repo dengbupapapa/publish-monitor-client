@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 
+import { isAbort } from '@/api/http'
 import {
   createScheduledTask,
   DEFAULT_LIMIT,
@@ -97,7 +98,7 @@ async function load() {
       size: state.value.size,
     }
   } catch (error) {
-    if (token !== seq || error.name === 'AbortError') return
+    if (token !== seq || isAbort(error)) return
     // 失败不能显示成「没有数据」：清空列表并交给错误提示
     errorMessage.value = error.message || '加载失败'
     pageData.value = { total: 0, rows: [], page: state.value.page, size: state.value.size }

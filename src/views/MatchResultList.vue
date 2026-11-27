@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { isAbort } from '@/api/http'
 import { DEFAULT_LIMIT, KEYWORD_MAX_LENGTH, listMatchResults, listRunBizScopeOptions, listRunJobTypes, normalizeBizScope, normalizeJobType, normalizeKeyword, WARN_SCOPE } from '@/api/matchResults'
 import { KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '@/diff/constants'
 import { changeSummary } from '@/diff/records'
@@ -223,7 +224,7 @@ async function load() {
       size: state.value.size,
     }
   } catch (error) {
-    if (token !== seq || error.name === 'AbortError') return
+    if (token !== seq || isAbort(error)) return
     // 失败不能显示成「没有数据」，这里清空列表并交给错误提示
     errorMessage.value = error.message || '加载失败'
     pageData.value = { total: 0, rows: [], page: 1, size: state.value.size }
